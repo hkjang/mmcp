@@ -105,6 +105,7 @@ flowchart LR
 
 ```bash
 make test                       # Go 단위 테스트 + 프론트엔드 테스트
+cd web && npm test              # 프론트엔드 테스트만 (node_modules 가 없으면 자동으로 npm ci)
 TEST_POSTGRES_DSN=postgres://... make test-integration   # PostgreSQL + 가짜 Mattermost 통합 테스트
 make build                      # UI 빌드 → Go 바이너리에 임베드 → bin/mmcp
 make package-offline            # release/mmcp-v1.0.0.tar.gz
