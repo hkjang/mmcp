@@ -48,9 +48,18 @@ type User struct {
 
 func (u *User) IsAdmin() bool { return slices.Contains(u.Roles, RoleAdmin) }
 
+// HasRole: admin and mcp-admin pass every check, and any mcp-* role implies
+// basic read access (mcp-user) — a writer must be able to read what it answers.
 func (u *User) HasRole(role string) bool {
 	if slices.Contains(u.Roles, RoleAdmin) || slices.Contains(u.Roles, RoleMCPAdmin) {
 		return true
+	}
+	if role == RoleMCPUser {
+		for _, r := range u.Roles {
+			if strings.HasPrefix(r, "mcp-") {
+				return true
+			}
+		}
 	}
 	return slices.Contains(u.Roles, role)
 }

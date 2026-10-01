@@ -4,7 +4,7 @@
 
 첫 정식 릴리스.
 
-- **MCP 게이트웨이**: Streamable HTTP(2025-11-25/06-18/03-26), 도구 26종(채널·검색·스레드·DM·그룹 DM·파일·채널 관리), 리소스·프롬프트, 공식 Mattermost MCP 호환 별칭.
+- **MCP 게이트웨이**: Streamable HTTP(2025-11-25 · 2025-06-18 · 2025-03-26 · 2024-11-05), 도구 28종(채널·검색·스레드·DM·그룹 DM·파일·채널 관리) + 공식 MCP 호환 별칭 4종, 리소스·프롬프트.
 - **인증**: Keycloak OIDC 로그인 + 사일런트 SSO(prompt=none) + JIT 사용자 생성·역할 동기화, MCP OAuth 2.1 인가 서버(DCR, PKCE S256, 회전형 리프레시 토큰·재사용 감지), Keycloak 액세스 토큰 직접 검증(JWKS), 개인 API 키.
 - **아이덴티티 매핑**: preferred_username으로 최초 탐색 후 Keycloak sub ↔ Mattermost user_id 고정, 계정 삭제·재생성 충돌 자동 차단, 수동 매핑.
 - **자격증명**: 사용자 PAT 자동 발급/직접 등록, 발신 계정 선택(본인/봇/자동), 봇 발신 시 요청자 표시와 props 기록.

@@ -190,3 +190,16 @@ func TestRateLimiter(t *testing.T) {
 		t.Fatal("should block with a wait hint")
 	}
 }
+
+func TestRoleImplication(t *testing.T) {
+	w := &User{Roles: []string{RoleMCPWriter}}
+	if !w.HasRole(RoleMCPUser) || w.HasRole(RoleMCPFile) || w.HasRole(RoleChannelAdmin) {
+		t.Fatal("mcp-writer implies mcp-user only")
+	}
+	if (&User{Roles: []string{"other"}}).HasRole(RoleMCPUser) {
+		t.Fatal("non-mcp roles grant nothing")
+	}
+	if !(&User{Roles: []string{RoleMCPAdmin}}).HasAnyRole([]string{RoleChannelAdmin}) {
+		t.Fatal("mcp-admin passes every check")
+	}
+}

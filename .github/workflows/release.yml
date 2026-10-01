@@ -1,0 +1,36 @@
+# Releases are normally cut locally with `make package-offline` + `gh release create`
+# (see docs/ADMIN_GUIDE.md). This workflow rebuilds and attaches the offline
+# image archive for an existing tag on demand.
+name: Offline release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: Existing tag matching VERSION (e.g. v1.0.0)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version_tag }}
+      - name: Validate tag
+        run: |
+          ./scripts/verify-version.sh
+          [ "${{ inputs.version_tag }}" = "v$(cat VERSION)" ] || { echo "tag/VERSION mismatch"; exit 1; }
+      - run: ./scripts/package-offline.sh
+      - run: ./scripts/verify-offline.sh
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ inputs.version_tag }}"
+          gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --title "mmcp $tag" --generate-notes
+          gh release upload "$tag" "release/mmcp-$tag.tar.gz" "release/mmcp-$tag.tar.gz.sha256" --clobber

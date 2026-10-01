@@ -18,7 +18,10 @@ func Handler() http.Handler {
 		panic(err)
 	}
 	files := http.FileServer(http.FS(sub))
-	index, _ := fs.ReadFile(sub, "index.html")
+	index, err := fs.ReadFile(sub, "index.html")
+	if err != nil {
+		index = []byte(`<!doctype html><meta charset="utf-8"><title>mmcp</title><p style="font-family:sans-serif">mmcp UI is not embedded in this build. Run <code>make ui</code> (or build the Docker image) and rebuild.</p>`)
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p := strings.TrimPrefix(path.Clean(r.URL.Path), "/")
 		if p != "" && p != "index.html" {

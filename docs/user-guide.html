@@ -1,0 +1,823 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>사용자 가이드 — mmcp v1.0.0 Mattermost MCP Gateway</title>
+  <meta name="description" content="mmcp 사용자 가이드: Keycloak SSO 로그인, Mattermost 계정 연결, Claude Code·Codex·Cursor MCP 연결, API 키 회전, 승인 흐름, 도구 목록과 문제 해결." />
+  <link rel="canonical" href="https://hkjang.github.io/mmcp/user-guide.html" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta property="og:title" content="mmcp 사용자 가이드" /><meta property="og:description" content="mmcp 사용자 가이드: Keycloak SSO 로그인, Mattermost 계정 연결, Claude Code·Codex·Cursor MCP 연결, API 키 회전, 승인 흐름, 도구 목록과 문제 해결." />
+  <meta property="og:image" content="https://hkjang.github.io/mmcp/og-card.png" /><meta property="og:type" content="article" />
+  <link rel="stylesheet" href="styles.css" />
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"mmcp 사용자 가이드","description":"mmcp 사용자 가이드: Keycloak SSO 로그인, Mattermost 계정 연결, Claude Code·Codex·Cursor MCP 연결, API 키 회전, 승인 흐름, 도구 목록과 문제 해결.","inLanguage":"ko","version":"1.0.0","url":"https://hkjang.github.io/mmcp/user-guide.html","about":{"@id":"https://hkjang.github.io/mmcp/#app"},"author":{"@type":"Person","name":"hkjang"}}</script>
+</head>
+<body class="doc">
+  <header class="nav"><div class="wrap nav-inner">
+    <a class="brand" href="./"><img src="favicon.svg" width="34" height="34" alt="" /><span><b>mmcp</b><small>사용자 가이드 · v1.0.0</small></span></a>
+    <nav aria-label="문서"><a href="./">홈</a><a href="user-guide.html">사용자 가이드</a><a href="admin-guide.html">관리자 가이드</a><a class="gh" href="https://github.com/hkjang/mmcp">GitHub</a></nav>
+  </div></header>
+  <div class="wrap doc-grid">
+    <aside class="doc-toc" aria-label="목차"><b>목차</b><a class="d2" href="#목차">목차</a><a class="d2" href="#1-mmcp가-하는-일">1. mmcp가 하는 일</a><a class="d2" href="#2-로그인">2. 로그인</a><a class="d3" href="#keycloak-sso">Keycloak SSO</a><a class="d3" href="#로컬-계정">로컬 계정</a><a class="d3" href="#로그인-오류가-보일-때">로그인 오류가 보일 때</a><a class="d2" href="#3-화면-둘러보기빠른-이동">3. 화면 둘러보기·빠른 이동</a><a class="d3" href="#내-공간-메뉴">내 공간 메뉴</a><a class="d3" href="#빠른-이동과-단축키">빠른 이동과 단축키</a><a class="d3" href="#프로필-메뉴">프로필 메뉴</a><a class="d2" href="#4-mattermost-계정-연결">4. Mattermost 계정 연결</a><a class="d3" href="#방법-1-자동-연결">방법 1. 자동 연결</a><a class="d3" href="#방법-2-내-개인-액세스-토큰-등록">방법 2. 내 개인 액세스 토큰 등록</a><a class="d3" href="#메시지는-누구-명의로-보내지나요">메시지는 누구 명의로 보내지나요?</a><a class="d2" href="#5-ai-클라이언트-연결">5. AI 클라이언트 연결</a><a class="d3" href="#claude-code">Claude Code</a><a class="d3" href="#oauth-동의-화면">OAuth 동의 화면</a><a class="d3" href="#codex-cli">Codex CLI</a><a class="d3" href="#cursor">Cursor</a><a class="d3" href="#vs-code-github-copilot-agent-모드">VS Code (GitHub Copilot Agent 모드)</a><a class="d3" href="#사내-ai-포털--서버-간-연동">사내 AI 포털 · 서버 간 연동</a><a class="d3" href="#연결-후-ai가-쓸-수-있는-것">연결 후 AI가 쓸 수 있는 것</a><a class="d2" href="#6-api-키-관리">6. API 키 관리</a><a class="d3" href="#발급">발급</a><a class="d3" href="#관리">관리</a><a class="d2" href="#7-도구-실행기">7. 도구 실행기</a><a class="d2" href="#8-승인-흐름">8. 승인 흐름</a><a class="d3" href="#받는-사람-지정">받는 사람 지정</a><a class="d3" href="#신뢰할-수-없는-콘텐츠-보호">신뢰할 수 없는 콘텐츠 보호</a><a class="d2" href="#9-사용-예시-프롬프트">9. 사용 예시 프롬프트</a><a class="d2" href="#10-도구-목록">10. 도구 목록</a><a class="d3" href="#조회검색-기본-역할-mcp-user">조회·검색 (기본 역할 mcp-user)</a><a class="d3" href="#작성-기본-역할-mcp-writer---기본-승인-필요">작성 (기본 역할 mcp-writer, ✅ = 기본 승인 필요)</a><a class="d3" href="#파일--기본-승인-필요">파일 (✅ 기본 승인 필요)</a><a class="d3" href="#채널-관리-역할-mcp-channel-admin--기본-승인-필요">채널 관리 (역할 mcp-channel-admin, ✅ 기본 승인 필요)</a><a class="d3" href="#위험-도구-역할-mcp-admin-기본-비활성화">위험 도구 (역할 mcp-admin, 기본 비활성화)</a><a class="d3" href="#호환-이름-기본-꺼짐">호환 이름 (기본 꺼짐)</a><a class="d3" href="#호출-한도">호출 한도</a><a class="d2" href="#11-내-활동세션연결된-앱">11. 내 활동·세션·연결된 앱</a><a class="d3" href="#내-활동">내 활동</a><a class="d3" href="#세션연결된-앱">세션·연결된 앱</a><a class="d2" href="#12-개인-암호화-키">12. 개인 암호화 키</a><a class="d2" href="#13-프로필테마">13. 프로필·테마</a><a class="d2" href="#14-faq--문제-해결">14. FAQ / 문제 해결</a><a class="d3" href="#자주-보는-오류-코드">자주 보는 오류 코드</a><a class="d3" href="#질문과-답">질문과 답</a></aside>
+    <article class="doc-body"><h1 id="mmcp-v100-사용자-가이드"><a class="anchor" href="#mmcp-v100-사용자-가이드" aria-hidden="true">#</a>mmcp v1.0.0 사용자 가이드</h1>
+<blockquote>
+<p>Mattermost MCP Gateway(mmcp) v1.0.0을 쓰는 <strong>일반 사용자</strong>를 위한 안내서입니다.
+서버 설치·운영과 관리 콘솔 설명은 다루지 않습니다.</p>
+</blockquote>
+<h2 id="목차"><a class="anchor" href="#목차" aria-hidden="true">#</a>목차</h2>
+<ol>
+<li><a href="#1-mmcp%EA%B0%80-%ED%95%98%EB%8A%94-%EC%9D%BC">mmcp가 하는 일</a></li>
+<li><a href="#2-%EB%A1%9C%EA%B7%B8%EC%9D%B8">로그인</a></li>
+<li><a href="#3-%ED%99%94%EB%A9%B4-%EB%91%98%EB%9F%AC%EB%B3%B4%EA%B8%B0%EB%B9%A0%EB%A5%B8-%EC%9D%B4%EB%8F%99">화면 둘러보기·빠른 이동</a></li>
+<li><a href="#4-mattermost-%EA%B3%84%EC%A0%95-%EC%97%B0%EA%B2%B0">Mattermost 계정 연결</a></li>
+<li><a href="#5-ai-%ED%81%B4%EB%9D%BC%EC%9D%B4%EC%96%B8%ED%8A%B8-%EC%97%B0%EA%B2%B0">AI 클라이언트 연결</a></li>
+<li><a href="#6-api-%ED%82%A4-%EA%B4%80%EB%A6%AC">API 키 관리</a></li>
+<li><a href="#7-%EB%8F%84%EA%B5%AC-%EC%8B%A4%ED%96%89%EA%B8%B0">도구 실행기</a></li>
+<li><a href="#8-%EC%8A%B9%EC%9D%B8-%ED%9D%90%EB%A6%84">승인 흐름</a></li>
+<li><a href="#9-%EC%82%AC%EC%9A%A9-%EC%98%88%EC%8B%9C-%ED%94%84%EB%A1%AC%ED%94%84%ED%8A%B8">사용 예시 프롬프트</a></li>
+<li><a href="#10-%EB%8F%84%EA%B5%AC-%EB%AA%A9%EB%A1%9D">도구 목록</a></li>
+<li><a href="#11-%EB%82%B4-%ED%99%9C%EB%8F%99%EC%84%B8%EC%85%98%EC%97%B0%EA%B2%B0%EB%90%9C-%EC%95%B1">내 활동·세션·연결된 앱</a></li>
+<li><a href="#12-%EA%B0%9C%EC%9D%B8-%EC%95%94%ED%98%B8%ED%99%94-%ED%82%A4">개인 암호화 키</a></li>
+<li><a href="#13-%ED%94%84%EB%A1%9C%ED%95%84%ED%85%8C%EB%A7%88">프로필·테마</a></li>
+<li><a href="#14-faq--%EB%AC%B8%EC%A0%9C-%ED%95%B4%EA%B2%B0">FAQ / 문제 해결</a></li>
+</ol>
+<hr>
+<h2 id="1-mmcp가-하는-일"><a class="anchor" href="#1-mmcp가-하는-일" aria-hidden="true">#</a>1. mmcp가 하는 일</h2>
+<p>mmcp는 Claude Code, Codex, Cursor, 사내 AI 포털 같은 <strong>AI 클라이언트가 Mattermost를 대신 조회하고 메시지를 보낼 수 있게</strong> 해 주는 MCP 서버입니다.</p>
+<ul>
+<li>모든 호출은 <strong>내 계정에 연결된 Mattermost 계정의 권한</strong>으로 실행됩니다. 내가 못 보는 채널은 AI도 못 봅니다.</li>
+<li>메시지·DM 발송 같은 <strong>쓰기 작업은 내가 확인한 뒤에만</strong> 실행됩니다(기본 설정).</li>
+<li>모든 호출은 감사 로그와 <a href="#11-%EB%82%B4-%ED%99%9C%EB%8F%99%EC%84%B8%EC%85%98%EC%97%B0%EA%B2%B0%EB%90%9C-%EC%95%B1">내 활동</a>에 남습니다.</li>
+</ul>
+<pre class="mermaid">flowchart LR
+    U[나] -->|"어제 채널 요약해줘"| AI[AI 클라이언트&lt;br/>Claude Code · Codex · Cursor]
+    AI -->|MCP + OAuth / API 키| M[mmcp]
+    M -->|내 Mattermost 권한| MM[(Mattermost)]
+    M -.->|쓰기 작업은 미리보기 → 내 동의| U</pre>
+<hr>
+<h2 id="2-로그인"><a class="anchor" href="#2-로그인" aria-hidden="true">#</a>2. 로그인</h2>
+<p>브라우저에서 mmcp 주소로 접속합니다. 로그인 화면과 오른쪽 위 프로필 메뉴에서 현재 서비스 버전(<strong>mmcp v1.0.0</strong>)을 확인할 수 있습니다.</p>
+<p><img src="screenshots/login.webp" alt="로그인 화면" loading="lazy" decoding="async" class="doc-shot" /></p>
+<h3 id="keycloak-sso"><a class="anchor" href="#keycloak-sso" aria-hidden="true">#</a>Keycloak SSO</h3>
+<ul>
+<li><strong>사일런트 SSO</strong>: 관리자가 켜 두었고 브라우저에 이미 Keycloak 로그인 세션이 있다면, 화면에 아무것도 누르지 않아도 &quot;Keycloak 로그인 상태를 확인하는 중…&quot; 잠깐 뒤 바로 로그인됩니다. 처음 로그인하면 mmcp 계정이 자동으로 만들어집니다.</li>
+<li>그렇지 않으면 <strong>Keycloak SSO로 로그인</strong> 버튼을 누릅니다(관리자가 버튼 이름을 바꿨을 수 있습니다).</li>
+<li>직접 로그아웃한 직후에는 사일런트 SSO가 다시 로그인시키지 않습니다.</li>
+</ul>
+<h3 id="로컬-계정"><a class="anchor" href="#로컬-계정" aria-hidden="true">#</a>로컬 계정</h3>
+<p>관리자가 로컬 로그인을 허용했다면 <strong>아이디/비밀번호</strong>로 로그인할 수 있습니다. SSO와 함께 켜져 있으면 &quot;또는 로컬 계정&quot; 아래에 입력 칸이 보입니다.</p>
+<h3 id="로그인-오류가-보일-때"><a class="anchor" href="#로그인-오류가-보일-때" aria-hidden="true">#</a>로그인 오류가 보일 때</h3>
+<table>
+<thead>
+<tr>
+<th>메시지</th>
+<th>할 일</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>로그인 요청이 만료되었거나 브라우저 쿠키가 차단되었습니다</td>
+<td>쿠키 허용 후 다시 시도</td>
+</tr>
+<tr>
+<td>Keycloak에서 로그인이 거부되었습니다</td>
+<td>Keycloak 계정/권한 확인</td>
+</tr>
+<tr>
+<td>mmcp 계정을 만들거나 연결하지 못했습니다</td>
+<td>관리자에게 문의</td>
+</tr>
+<tr>
+<td>사용 가능한 로그인 방법이 없습니다</td>
+<td>관리자에게 문의</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="3-화면-둘러보기빠른-이동"><a class="anchor" href="#3-화면-둘러보기빠른-이동" aria-hidden="true">#</a>3. 화면 둘러보기·빠른 이동</h2>
+<p>로그인하면 <strong>내 공간</strong>이 열립니다.</p>
+<p><img src="screenshots/me-home.webp" alt="내 홈" loading="lazy" decoding="async" class="doc-shot" /></p>
+<h3 id="내-공간-메뉴"><a class="anchor" href="#내-공간-메뉴" aria-hidden="true">#</a>내 공간 메뉴</h3>
+<table>
+<thead>
+<tr>
+<th>메뉴</th>
+<th>하는 일</th>
+<th>단축키</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>내 홈</td>
+<td>시작 가이드, 보안 점검, 최근 7일 호출·API 키·승인 대기 요약</td>
+<td><code>G</code> → <code>H</code></td>
+</tr>
+<tr>
+<td>MCP 연결 가이드</td>
+<td>Claude Code·Codex·Cursor 등 연결 설정 복사</td>
+<td><code>G</code> → <code>C</code></td>
+</tr>
+<tr>
+<td>내 API 키</td>
+<td>개인 API 키 발급·회전·폐기</td>
+<td><code>G</code> → <code>I</code></td>
+</tr>
+<tr>
+<td>Mattermost 연결</td>
+<td>계정 매핑과 개인 액세스 토큰</td>
+<td>–</td>
+</tr>
+<tr>
+<td>개인 암호화 키</td>
+<td>내 데이터 키 버전과 회전</td>
+<td>–</td>
+</tr>
+<tr>
+<td>도구 실행기</td>
+<td>MCP 도구를 직접 실행</td>
+<td><code>G</code> → <code>R</code></td>
+</tr>
+<tr>
+<td>승인 요청</td>
+<td>AI가 요청한 쓰기 작업 확인</td>
+<td>–</td>
+</tr>
+<tr>
+<td>내 활동</td>
+<td>도구 호출·로그인·키 변경 기록</td>
+<td>–</td>
+</tr>
+<tr>
+<td>세션·연결된 앱</td>
+<td>브라우저 세션, OAuth 앱, MCP 세션</td>
+<td>–</td>
+</tr>
+<tr>
+<td>프로필·환경설정</td>
+<td>이름, 비밀번호, 테마</td>
+<td><code>G</code> → <code>P</code></td>
+</tr>
+</tbody></table>
+<p><strong>내 홈</strong>의 <em>보안 점검</em>은 Mattermost 계정 연결, Mattermost 자격증명, API 키 회전, 개인 암호화 키 상태(로컬 계정이면 비밀번호 안내 포함)를 체크하고, 문제가 있는 항목에서 바로 해당 화면으로 이동할 수 있습니다.</p>
+<h3 id="빠른-이동과-단축키"><a class="anchor" href="#빠른-이동과-단축키" aria-hidden="true">#</a>빠른 이동과 단축키</h3>
+<p><img src="screenshots/command-palette.webp" alt="명령 팔레트" loading="lazy" decoding="async" class="doc-shot" /></p>
+<table>
+<thead>
+<tr>
+<th>키</th>
+<th>동작</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Ctrl/⌘ + K</code> 또는 <code>/</code></td>
+<td>빠른 이동(명령 팔레트) 열기</td>
+</tr>
+<tr>
+<td><code>G</code> 다음 글자</td>
+<td>위 표의 화면으로 바로 이동</td>
+</tr>
+<tr>
+<td><code>?</code></td>
+<td>단축키 도움말</td>
+</tr>
+<tr>
+<td><code>Shift + T</code></td>
+<td>라이트/다크 테마 전환</td>
+</tr>
+</tbody></table>
+<ul>
+<li>팔레트는 <strong>초성 검색</strong>을 지원합니다. 예: <code>ㄷㅅㅂㄷ</code> → 도구 실행기.</li>
+<li>팔레트에서 <em>새 API 키 발급</em>, <em>MCP 클라이언트 연결 설정 복사</em>, <em>테마 전환</em>, <em>로그아웃</em> 같은 작업도 바로 실행할 수 있고, 최근 이동한 화면이 맨 위에 나옵니다.</li>
+<li>상단의 🔔 아이콘에는 승인 대기 건수가 표시되며, 누르면 <strong>승인 요청</strong> 화면으로 갑니다.</li>
+</ul>
+<h3 id="프로필-메뉴"><a class="anchor" href="#프로필-메뉴" aria-hidden="true">#</a>프로필 메뉴</h3>
+<p>오른쪽 위 아바타를 누르면 계정 정보(아이디, SSO/로컬 구분, 역할), 내 홈·내 API 키·프로필 바로가기, 테마(라이트/다크/시스템), 키보드 단축키, <strong>서비스 버전(mmcp v1.0.0)</strong>, 로그아웃이 있습니다.</p>
+<p><img src="screenshots/profile-menu.webp" alt="프로필 메뉴" loading="lazy" decoding="async" class="doc-shot" /></p>
+<hr>
+<h2 id="4-mattermost-계정-연결"><a class="anchor" href="#4-mattermost-계정-연결" aria-hidden="true">#</a>4. Mattermost 계정 연결</h2>
+<p>AI가 Mattermost를 쓰려면 먼저 내 mmcp 계정을 Mattermost 계정과 연결해야 합니다. <strong>내 공간 → Mattermost 연결</strong>로 이동하세요.</p>
+<p><img src="screenshots/my-mattermost.webp" alt="Mattermost 연결" loading="lazy" decoding="async" class="doc-shot" /></p>
+<h3 id="방법-1-자동-연결"><a class="anchor" href="#방법-1-자동-연결" aria-hidden="true">#</a>방법 1. 자동 연결</h3>
+<p>관리자가 자동 매핑(서비스 토큰)을 설정해 두었다면 <strong>자동으로 연결하기</strong>만 누르면 됩니다. mmcp 아이디와 <strong>같은 username</strong>의 Mattermost 계정을 찾아 연결합니다(관리자 설정에 따라 이메일로도 찾습니다).</p>
+<p>관리자가 토큰 자동 발급을 켜 두었다면 첫 사용 시 개인 액세스 토큰이 자동으로 발급되며, 나중에 <strong>토큰 회전</strong>으로 교체할 수 있습니다.</p>
+<h3 id="방법-2-내-개인-액세스-토큰-등록"><a class="anchor" href="#방법-2-내-개인-액세스-토큰-등록" aria-hidden="true">#</a>방법 2. 내 개인 액세스 토큰 등록</h3>
+<ol>
+<li>Mattermost에 접속합니다.</li>
+<li><strong>프로필 → 보안 → 개인 액세스 토큰</strong>으로 이동합니다(메뉴가 없으면 관리자에게 토큰 생성 권한을 요청하세요).</li>
+<li>설명에 <code>mmcp</code>라고 적고 토큰을 만든 뒤 복사합니다.</li>
+<li>mmcp의 <em>개인 액세스 토큰 등록</em> 칸에 붙여 넣고 <strong>검증 후 저장</strong>을 누릅니다.</li>
+</ol>
+<ul>
+<li>mmcp는 <strong>토큰 주인이 내 계정과 같은지 확인</strong>한 뒤에만 저장합니다. 다른 사람의 토큰은 <code>IDENTITY_CONFLICT</code>로 거부됩니다.</li>
+<li>토큰은 **내 개인 데이터 키로 암호화(AES-256-GCM)**되어 저장되고, 다시 화면에 표시되지 않습니다.</li>
+<li>토큰을 교체했다면 Mattermost에서 이전 토큰을 비활성화하세요.</li>
+<li><strong>토큰 삭제</strong>를 누르면 저장된 토큰이 지워지며, 자동 발급된 토큰은 Mattermost에서도 폐기됩니다.</li>
+<li>mmcp는 <strong>Mattermost 비밀번호를 묻지 않습니다.</strong> 비밀번호를 요구하는 화면이 있다면 의심하세요.</li>
+</ul>
+<h3 id="메시지는-누구-명의로-보내지나요"><a class="anchor" href="#메시지는-누구-명의로-보내지나요" aria-hidden="true">#</a>메시지는 누구 명의로 보내지나요?</h3>
+<p>관리자 설정에 따라 정해지며, 화면 오른쪽에 현재 방식이 안내됩니다.</p>
+<table>
+<thead>
+<tr>
+<th>방식</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>본인(user)</td>
+<td>내 Mattermost 계정 명의로 보냅니다. 자격증명이 필요합니다.</td>
+</tr>
+<tr>
+<td>봇(bot)</td>
+<td>봇 계정이 보내고, 메시지 상단에 &quot;○○님의 요청&quot; 같은 요청자 표시가 붙습니다.</td>
+</tr>
+<tr>
+<td>자동(auto)</td>
+<td>자격증명이 있으면 내 명의로, 없으면 봇이 요청자 표시와 함께 보냅니다.</td>
+</tr>
+</tbody></table>
+<p>어떤 방식이든 요청자 정보가 감사 로그와 메시지 props(<code>requested_by</code>)에 기록됩니다.</p>
+<hr>
+<h2 id="5-ai-클라이언트-연결"><a class="anchor" href="#5-ai-클라이언트-연결" aria-hidden="true">#</a>5. AI 클라이언트 연결</h2>
+<p><strong>내 공간 → MCP 연결 가이드</strong>에 내 환경에 맞는 MCP 서버 주소와 설정이 준비되어 있습니다. 주소는 항상 <code>{mmcp 주소}/mcp</code> 형식이며 <strong>복사</strong> 버튼으로 복사할 수 있습니다.</p>
+<p><img src="screenshots/connect.webp" alt="MCP 연결 가이드" loading="lazy" decoding="async" class="doc-shot" /></p>
+<p>인증 방법은 두 가지입니다.</p>
+<ul>
+<li><strong>OAuth(권장)</strong>: 처음 도구를 쓸 때 브라우저가 열리고 동의 화면에서 <strong>허용</strong>하면 끝납니다.</li>
+<li><strong>개인 API 키</strong>: OAuth를 지원하지 않는 클라이언트나 스크립트용(<a href="#6-api-%ED%82%A4-%EA%B4%80%EB%A6%AC">6장</a>).</li>
+</ul>
+<p>아래 예시의 <code>https://mmcp.example.com/mcp</code>는 연결 가이드에 표시된 실제 주소로 바꾸세요.</p>
+<h3 id="claude-code"><a class="anchor" href="#claude-code" aria-hidden="true">#</a>Claude Code</h3>
+<pre class="code"><code>claude mcp add --transport http mmcp https://mmcp.example.com/mcp</code></pre>
+<p>Claude Code 안에서 <code>/mcp</code> → <strong>mmcp</strong> → <strong>Authenticate</strong>를 선택하면 브라우저에 동의 화면이 열립니다.</p>
+<p>API 키로 연결하려면:</p>
+<pre class="code"><code>claude mcp add --transport http mmcp https://mmcp.example.com/mcp \
+  --header "Authorization: Bearer mmcp_pk_…"</code></pre>
+<h3 id="oauth-동의-화면"><a class="anchor" href="#oauth-동의-화면" aria-hidden="true">#</a>OAuth 동의 화면</h3>
+<p><img src="screenshots/oauth-consent.webp" alt="OAuth 동의 화면" loading="lazy" decoding="async" class="doc-shot" /></p>
+<p>동의 화면에는 클라이언트 이름, 돌아갈 주소(로컬 앱이면 &quot;로컬 앱&quot; 표시), 요청 권한이 나옵니다.</p>
+<ul>
+<li><code>mcp</code> — 조회 + 승인 기반 작성</li>
+<li><code>mcp:read</code> — 조회 전용</li>
+</ul>
+<p>내용을 확인하고 <strong>허용</strong>을 누르세요. **&quot;이 클라이언트를 기억하고 다음부터 묻지 않기&quot;**를 체크하면 다음부터 동의 화면이 생략됩니다(관리자가 허용한 경우에만 보입니다). 연결은 언제든 <a href="#11-%EB%82%B4-%ED%99%9C%EB%8F%99%EC%84%B8%EC%85%98%EC%97%B0%EA%B2%B0%EB%90%9C-%EC%95%B1">세션·연결된 앱</a>에서 끊을 수 있습니다.</p>
+<h3 id="codex-cli"><a class="anchor" href="#codex-cli" aria-hidden="true">#</a>Codex CLI</h3>
+<p><code>~/.codex/config.toml</code>:</p>
+<pre class="code"><code>[mcp_servers.mmcp]
+url = "https://mmcp.example.com/mcp"
+bearer_token_env_var = "MMCP_API_KEY"</code></pre>
+<pre class="code"><code>export MMCP_API_KEY="mmcp_pk_…"
+codex</code></pre>
+<p>OAuth를 지원하는 Codex 버전에서는 <code>codex mcp add mmcp --url https://mmcp.example.com/mcp</code> 후 <code>codex mcp login mmcp</code>를 쓸 수 있습니다.</p>
+<h3 id="cursor"><a class="anchor" href="#cursor" aria-hidden="true">#</a>Cursor</h3>
+<p><code>~/.cursor/mcp.json</code> (OAuth 자동 처리):</p>
+<pre class="code"><code>{
+  "mcpServers": {
+    "mmcp": { "url": "https://mmcp.example.com/mcp" }
+  }
+}</code></pre>
+<h3 id="vs-code-github-copilot-agent-모드"><a class="anchor" href="#vs-code-github-copilot-agent-모드" aria-hidden="true">#</a>VS Code (GitHub Copilot Agent 모드)</h3>
+<p><code>.vscode/mcp.json</code>:</p>
+<pre class="code"><code>{
+  "servers": {
+    "mmcp": { "type": "http", "url": "https://mmcp.example.com/mcp" }
+  }
+}</code></pre>
+<h3 id="사내-ai-포털--서버-간-연동"><a class="anchor" href="#사내-ai-포털--서버-간-연동" aria-hidden="true">#</a>사내 AI 포털 · 서버 간 연동</h3>
+<p>이미 Keycloak 토큰을 가진 사내 서비스는 그 <strong>Keycloak 액세스 토큰을 그대로 Bearer</strong>로 보냅니다. mmcp가 토큰을 검증하고 <code>preferred_username</code>으로 사용자를 찾습니다.</p>
+<pre class="code"><code>curl -s https://mmcp.example.com/mcp \
+  -H "Authorization: Bearer $KEYCLOAK_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'</code></pre>
+<ul>
+<li>토큰의 <code>aud</code> 또는 <code>azp</code>에 mmcp 클라이언트 ID(연결 가이드에 표시)가 포함되어야 합니다.</li>
+<li>관리자가 Keycloak 토큰 직접 인증을 꺼 두었다면 연결 가이드에 경고가 표시됩니다.</li>
+</ul>
+<p>연결 가이드의 <strong>테스트 (curl)</strong> 탭에는 API 키로 <code>initialize</code>와 도구 호출을 시험하는 예시가 있습니다.</p>
+<h3 id="연결-후-ai가-쓸-수-있는-것"><a class="anchor" href="#연결-후-ai가-쓸-수-있는-것" aria-hidden="true">#</a>연결 후 AI가 쓸 수 있는 것</h3>
+<ul>
+<li><strong>도구</strong>: <a href="#10-%EB%8F%84%EA%B5%AC-%EB%AA%A9%EB%A1%9D">10장</a> 참고. 내 역할·관리자 정책에 따라 보이는 도구가 다릅니다.</li>
+<li><strong>리소스</strong>: <code>mattermost://me</code>, <code>mattermost://teams</code>, <code>mattermost://channels</code>, <code>mattermost://unread</code>, 그리고 템플릿 <code>mattermost://channels/{channel_id}</code>, <code>mattermost://threads/{post_id}</code>, <code>mattermost://users/{username}</code>, <code>mattermost://dms/{username}</code>.</li>
+<li><strong>프롬프트</strong>(클라이언트가 지원하면 메뉴에서 선택):</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>프롬프트</th>
+<th>인자</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>summarize_channel</code></td>
+<td><code>channel</code>(필수), <code>days</code>(기본 1)</td>
+<td>채널 최근 대화를 결정 사항·할 일·미해결 질문으로 요약</td>
+</tr>
+<tr>
+<td><code>find_decisions</code></td>
+<td><code>topic</code>(필수)</td>
+<td>주제 관련 결정 사항·일자·담당자·근거 링크를 표로 정리</td>
+</tr>
+<tr>
+<td><code>daily_digest</code></td>
+<td>–</td>
+<td>읽지 않은 메시지를 멘션 → DM → 기타 채널 순으로 정리</td>
+</tr>
+<tr>
+<td><code>draft_dm</code></td>
+<td><code>recipient</code>, <code>topic</code>(필수)</td>
+<td>DM 초안을 먼저 보여 주고 승인 후 발송</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="6-api-키-관리"><a class="anchor" href="#6-api-키-관리" aria-hidden="true">#</a>6. API 키 관리</h2>
+<p><strong>내 공간 → 내 API 키</strong>. 키는 <strong>내 권한으로만</strong> 동작하며, 비밀값(<code>mmcp_pk_…</code>)은 <strong>발급 순간 한 번만</strong> 표시됩니다.</p>
+<p><img src="screenshots/my-keys.webp" alt="내 API 키" loading="lazy" decoding="async" class="doc-shot" /></p>
+<h3 id="발급"><a class="anchor" href="#발급" aria-hidden="true">#</a>발급</h3>
+<p><strong>새 키 발급</strong>(또는 팔레트의 <em>새 API 키 발급</em>)을 누르고:</p>
+<ul>
+<li><strong>이름</strong>: 어디에 쓰는 키인지(예: &quot;노트북 Claude Code&quot;), 최대 60자.</li>
+<li><strong>만료</strong>: 30일 / 90일 / 180일 / 365일 중 관리자 정책 최대치 이하. 정책이 허용할 때만 &quot;만료 없음 (권장하지 않음)&quot;이 보입니다.</li>
+<li><strong>읽기 전용 키</strong>: 조회·검색 도구만 쓸 수 있습니다. 공유 환경이나 대시보드용으로 권장합니다.</li>
+</ul>
+<p>발급 창에서 비밀값과 Claude Code 등록 예시를 바로 복사하세요. 창을 닫으면 다시 볼 수 없습니다. 사용자당 활성 키 개수에도 정책상 한도가 있습니다(화면 상단에 표시).</p>
+<h3 id="관리"><a class="anchor" href="#관리" aria-hidden="true">#</a>관리</h3>
+<table>
+<thead>
+<tr>
+<th>동작</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>이름 변경</td>
+<td>이름 옆 연필 아이콘으로 바로 수정</td>
+</tr>
+<tr>
+<td>회전</td>
+<td>같은 설정으로 새 키를 발급하고, 이전 키는 <strong>즉시 / 1시간 / 24시간 / 7일</strong> 유예 후 만료. 유출이 의심되면 <em>즉시</em>, 여러 기기 교체는 <em>24시간</em> 권장</td>
+</tr>
+<tr>
+<td>폐기</td>
+<td>즉시 무효화. 이 키를 쓰는 클라이언트는 바로 끊깁니다</td>
+</tr>
+<tr>
+<td>폐기·만료 키 보기</td>
+<td>지난 키까지 목록에 표시</td>
+</tr>
+</tbody></table>
+<p>키가 정책의 회전 권장 주기를 넘으면 <strong>회전 권장</strong> 배지와 경고가 표시되고, 내 홈 보안 점검에도 나타납니다.</p>
+<hr>
+<h2 id="7-도구-실행기"><a class="anchor" href="#7-도구-실행기" aria-hidden="true">#</a>7. 도구 실행기</h2>
+<p><strong>내 공간 → 도구 실행기</strong>(<code>G</code> → <code>R</code>)에서 AI 클라이언트가 쓰는 도구를 <strong>내 권한으로 직접</strong> 실행해 볼 수 있습니다. 정책·승인·감사가 실제 MCP 호출과 똑같이 적용됩니다.</p>
+<p><img src="screenshots/playground.webp" alt="도구 실행기" loading="lazy" decoding="async" class="doc-shot" /></p>
+<ol>
+<li>왼쪽 목록에서 도구를 고릅니다(검색 가능). 🔒 표시는 승인이 필요한 도구, 흐리게 보이는 도구는 지금 쓸 수 없는 도구이며 마우스를 올리면 이유가 나옵니다.</li>
+<li><strong>폼</strong> 또는 <strong>JSON</strong> 모드로 인자를 입력합니다. 일부 도구는 예시 값이 미리 채워져 있습니다.</li>
+<li><strong>실행</strong>을 누르면 결과(성공/오류 코드, 소요 시간)가 JSON으로 표시됩니다.</li>
+</ol>
+<p><img src="screenshots/playground-search.webp" alt="메시지 검색 실행 예" loading="lazy" decoding="async" class="doc-shot" /></p>
+<ul>
+<li>승인이 필요한 도구는 먼저 <strong>&quot;실행 전 확인이 필요합니다&quot;</strong> 카드에 미리보기가 나옵니다. <strong>승인하고 실행</strong> 또는 <strong>거절</strong>을 고르세요.</li>
+<li>받는 사람이 여러 명과 일치하면 후보 버튼이 나옵니다. 하나를 누르면 해당 username이 입력되니 다시 실행하세요.</li>
+<li>아래쪽 <em>이번 세션 실행 기록</em>에서 최근 실행 결과를 다시 볼 수 있습니다.</li>
+</ul>
+<p>다크 테마에서도 동일하게 동작합니다.</p>
+<p><img src="screenshots/dark-playground.webp" alt="다크 테마 도구 실행기" loading="lazy" decoding="async" class="doc-shot" /></p>
+<hr>
+<h2 id="8-승인-흐름"><a class="anchor" href="#8-승인-흐름" aria-hidden="true">#</a>8. 승인 흐름</h2>
+<p>메시지 작성·DM 발송 같은 쓰기 작업은 기본적으로 <strong>2단계 확인</strong>을 거칩니다(관리자가 도구별로 정합니다).</p>
+<pre class="mermaid">sequenceDiagram
+    participant 나
+    participant AI
+    participant mmcp
+    나->>AI: kim에게 회의 DM 보내줘
+    AI->>mmcp: mattermost_send_dm (confirm_token 없음)
+    mmcp-->>AI: APPROVAL_REQUIRED + 미리보기 + confirm_token
+    AI->>나: 받는 사람·내용 미리보기, 보낼까요?
+    나->>AI: 네
+    AI->>mmcp: 같은 인자 + confirm_token
+    mmcp-->>AI: 발송 완료</pre>
+<ul>
+<li>미리보기에는 받는 사람, 메시지, 발신 방식(본인/봇)이 들어 있습니다. <strong>대화창에서 내용을 꼭 확인한 뒤 동의</strong>하세요.</li>
+<li><strong>승인 요청</strong> 화면(또는 상단 🔔)에서 대기 중인 요청을 보고 <strong>미리 승인</strong>하거나 <strong>거절</strong>할 수 있습니다. 상태별(대기/실행됨/거절/만료/전체)로 볼 수 있습니다.</li>
+<li>**의도하지 않은 요청은 &#39;거절&#39;**하세요. 거절된 토큰으로는 절대 실행되지 않습니다.</li>
+<li>다음 경우에도 실행되지 않으며, AI는 처음부터 다시 미리보기를 받아야 합니다.<ul>
+<li>유효시간이 지난 토큰(기본 10분, 관리자 설정) — <code>APPROVAL_EXPIRED</code></li>
+<li>이미 실행된 토큰 — <code>APPROVAL_USED</code></li>
+<li>승인 후 <strong>인자(받는 사람·내용 등)가 바뀐</strong> 경우 — <code>APPROVAL_MISMATCH</code></li>
+<li>거절된 토큰 — <code>APPROVAL_REJECTED</code></li>
+</ul>
+</li>
+</ul>
+<p><img src="screenshots/my-approvals.webp" alt="승인 요청" loading="lazy" decoding="async" class="doc-shot" /></p>
+<h3 id="받는-사람-지정"><a class="anchor" href="#받는-사람-지정" aria-hidden="true">#</a>받는 사람 지정</h3>
+<p>받는 사람은 <strong>username</strong>(<code>kim</code>, <code>@kim</code>), <strong>이메일</strong>, <strong>한글 전체 이름</strong>(<code>김철수</code>)으로 지정할 수 있습니다. 같은 이름이 여러 명이면 mmcp는 <strong>임의로 고르지 않고</strong> 후보 목록(<code>AMBIGUOUS_RECIPIENT</code>)을 돌려주며, AI가 나에게 누구인지 물어봅니다.</p>
+<h3 id="신뢰할-수-없는-콘텐츠-보호"><a class="anchor" href="#신뢰할-수-없는-콘텐츠-보호" aria-hidden="true">#</a>신뢰할 수 없는 콘텐츠 보호</h3>
+<p>Mattermost에서 읽어 온 결과는 &quot;사용자가 작성한 신뢰할 수 없는 콘텐츠&quot;로 감싸서 AI에 전달됩니다(관리자 설정, 기본 켜짐). 메시지 안에 &quot;이전 지시를 무시하라&quot; 같은 문장이 있어도 AI가 따르지 않도록 하는 장치입니다.</p>
+<hr>
+<h2 id="9-사용-예시-프롬프트"><a class="anchor" href="#9-사용-예시-프롬프트" aria-hidden="true">#</a>9. 사용 예시 프롬프트</h2>
+<p>AI 클라이언트에 평소 말하듯 요청하면 됩니다.</p>
+<table>
+<thead>
+<tr>
+<th>요청</th>
+<th>AI가 주로 쓰는 도구</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>&quot;어제 text2sql 채널 요약해줘&quot;</td>
+<td><code>mattermost_recent_posts</code></td>
+</tr>
+<tr>
+<td>&quot;Text2SQL 장애 관련 결정사항 찾아줘&quot;</td>
+<td><code>mattermost_search_posts</code>, <code>mattermost_get_thread</code></td>
+</tr>
+<tr>
+<td>&quot;kim에게 내일 10시 회의라고 DM 보내줘&quot;</td>
+<td><code>mattermost_send_dm</code> (승인 필요)</td>
+</tr>
+<tr>
+<td>&quot;읽지 않은 메시지 정리해줘&quot;</td>
+<td><code>mattermost_unread</code></td>
+</tr>
+<tr>
+<td>&quot;kim, lee, park에게 그룹 메시지로 배포 일정 공유해줘&quot;</td>
+<td><code>mattermost_send_group_dm</code> (승인 필요)</td>
+</tr>
+<tr>
+<td>&quot;김철수랑 최근 DM 뭐였지?&quot;</td>
+<td><code>mattermost_read_dm</code></td>
+</tr>
+<tr>
+<td>&quot;이 스레드에 &#39;확인했습니다&#39;라고 답글 달아줘&quot;</td>
+<td><code>mattermost_reply</code> (승인 필요)</td>
+</tr>
+</tbody></table>
+<p>팁:</p>
+<ul>
+<li>채널은 이름, <code>팀/채널</code>, 채널 ID로 지정할 수 있고 <code>@username</code>은 DM을 뜻합니다.</li>
+<li>같은 이름의 채널이 여러 팀에 있으면 <code>팀/채널</code> 형식으로 알려 주세요.</li>
+<li>발송 전에 AI가 보여 주는 미리보기를 꼭 읽어 보세요.</li>
+</ul>
+<hr>
+<h2 id="10-도구-목록"><a class="anchor" href="#10-도구-목록" aria-hidden="true">#</a>10. 도구 목록</h2>
+<p>아래는 mmcp v1.0.0에 들어 있는 도구입니다. <strong>관리자가 일부 도구를 끄거나 승인 여부·필요 역할을 바꿀 수 있으므로</strong>, 실제로 쓸 수 있는 목록은 도구 실행기에서 확인하세요. 읽기 전용 API 키나 <code>mcp:read</code> 권한으로 연결하면 쓰기 도구는 보이지 않습니다.</p>
+<h3 id="조회검색-기본-역할-mcp-user"><a class="anchor" href="#조회검색-기본-역할-mcp-user" aria-hidden="true">#</a>조회·검색 (기본 역할 <code>mcp-user</code>)</h3>
+<table>
+<thead>
+<tr>
+<th>도구</th>
+<th>하는 일</th>
+<th>주요 인자</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>mattermost_me</code></td>
+<td>내게 연결된 Mattermost 계정 정보</td>
+<td>–</td>
+</tr>
+<tr>
+<td><code>mattermost_teams</code></td>
+<td>내 팀 목록</td>
+<td>–</td>
+</tr>
+<tr>
+<td><code>mattermost_channels</code></td>
+<td>참여 중인 채널 목록</td>
+<td><code>team</code>, <code>query</code>, <code>include_private</code>, <code>limit</code></td>
+</tr>
+<tr>
+<td><code>mattermost_channel</code></td>
+<td>채널 상세(목적, 헤더, 멤버 수, 읽음 상태)</td>
+<td><code>channel</code></td>
+</tr>
+<tr>
+<td><code>mattermost_search_posts</code></td>
+<td>메시지 검색 (<code>&quot;정확한 구문&quot;</code>, <code>-제외어</code>, <code>접두어*</code>)</td>
+<td><code>query</code>, <code>team</code>, <code>channel</code>, <code>from_user</code>, <code>after</code>/<code>before</code>/<code>on</code>, <code>limit</code></td>
+</tr>
+<tr>
+<td><code>mattermost_get_post</code></td>
+<td>메시지 한 건 조회</td>
+<td><code>post_id</code></td>
+</tr>
+<tr>
+<td><code>mattermost_get_thread</code></td>
+<td>스레드 전체를 시간순 조회</td>
+<td><code>post_id</code>, <code>limit</code></td>
+</tr>
+<tr>
+<td><code>mattermost_recent_posts</code></td>
+<td>채널 최근 메시지</td>
+<td><code>channel</code>, <code>limit</code>, <code>since</code></td>
+</tr>
+<tr>
+<td><code>mattermost_users</code></td>
+<td>username·이름·닉네임·이메일로 사용자 검색</td>
+<td><code>query</code>, <code>limit</code></td>
+</tr>
+<tr>
+<td><code>mattermost_unread</code></td>
+<td>읽지 않은 메시지·멘션이 있는 채널 요약</td>
+<td><code>team</code>, <code>include_posts</code>, <code>posts_per_channel</code></td>
+</tr>
+<tr>
+<td><code>mattermost_pinned_posts</code></td>
+<td>채널 고정 메시지</td>
+<td><code>channel</code></td>
+</tr>
+<tr>
+<td><code>mattermost_read_dm</code></td>
+<td>특정 사용자와의 1:1 DM 최근 대화 (항상 본인 자격증명)</td>
+<td><code>user</code> 또는 <code>channel</code>, <code>limit</code>, <code>since</code></td>
+</tr>
+<tr>
+<td><code>mattermost_recent_dms</code></td>
+<td>최근 DM/그룹 대화 목록과 미확인 건수</td>
+<td><code>limit</code>, <code>unread_only</code></td>
+</tr>
+<tr>
+<td><code>mattermost_search_dm</code></td>
+<td>내 DM/그룹 메시지 검색 — <strong>기본 꺼짐</strong>(관리자가 DM 검색 허용 시)</td>
+<td><code>query</code>, <code>user</code>, <code>after</code>, <code>before</code>, <code>limit</code></td>
+</tr>
+<tr>
+<td><code>mattermost_get_file</code></td>
+<td>첨부 파일 정보와 텍스트 내용 — <strong>기본 꺼짐</strong>(파일 다운로드 허용 시), 역할 <code>mcp-file</code></td>
+<td><code>file_id</code></td>
+</tr>
+</tbody></table>
+<h3 id="작성-기본-역할-mcp-writer---기본-승인-필요"><a class="anchor" href="#작성-기본-역할-mcp-writer---기본-승인-필요" aria-hidden="true">#</a>작성 (기본 역할 <code>mcp-writer</code>, ✅ = 기본 승인 필요)</h3>
+<table>
+<thead>
+<tr>
+<th>도구</th>
+<th>하는 일</th>
+<th>주요 인자</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>mattermost_post_message</code> ✅</td>
+<td>채널에 메시지 게시(<code>root_id</code>면 스레드 답글)</td>
+<td><code>channel</code>, <code>message</code>, <code>root_id</code></td>
+</tr>
+<tr>
+<td><code>mattermost_reply</code> ✅</td>
+<td>기존 메시지 스레드에 답글</td>
+<td><code>post_id</code>, <code>message</code></td>
+</tr>
+<tr>
+<td><code>mattermost_update_post</code> ✅</td>
+<td><strong>본인이 쓴</strong> 메시지 수정</td>
+<td><code>post_id</code>, <code>message</code></td>
+</tr>
+<tr>
+<td><code>mattermost_add_reaction</code></td>
+<td>이모지 반응 추가 (기본 승인 없음)</td>
+<td><code>post_id</code>, <code>emoji</code></td>
+</tr>
+<tr>
+<td><code>mattermost_send_dm</code> ✅</td>
+<td>1:1 DM 보내기</td>
+<td><code>recipient</code>, <code>message</code></td>
+</tr>
+<tr>
+<td><code>mattermost_send_group_dm</code> ✅</td>
+<td>2~7명에게 그룹 메시지</td>
+<td><code>recipients</code>, <code>message</code></td>
+</tr>
+<tr>
+<td><code>mattermost_reply_dm</code> ✅</td>
+<td>DM/그룹 메시지에 스레드 답장</td>
+<td><code>post_id</code>, <code>message</code></td>
+</tr>
+</tbody></table>
+<h3 id="파일--기본-승인-필요"><a class="anchor" href="#파일--기본-승인-필요" aria-hidden="true">#</a>파일 (✅ 기본 승인 필요)</h3>
+<table>
+<thead>
+<tr>
+<th>도구</th>
+<th>하는 일</th>
+<th>역할</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>mattermost_upload_file</code> ✅</td>
+<td>텍스트/base64 내용을 파일로 만들어 채널에 게시</td>
+<td><code>mcp-file</code></td>
+</tr>
+<tr>
+<td><code>mattermost_upload_dm_file</code> ✅</td>
+<td>파일을 첨부해 1:1 DM</td>
+<td><code>mcp-writer</code> + <code>mcp-file</code></td>
+</tr>
+</tbody></table>
+<h3 id="채널-관리-역할-mcp-channel-admin--기본-승인-필요"><a class="anchor" href="#채널-관리-역할-mcp-channel-admin--기본-승인-필요" aria-hidden="true">#</a>채널 관리 (역할 <code>mcp-channel-admin</code>, ✅ 기본 승인 필요)</h3>
+<table>
+<thead>
+<tr>
+<th>도구</th>
+<th>하는 일</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>mattermost_create_channel</code> ✅</td>
+<td>팀에 공개(O)/비공개(P) 채널 생성</td>
+</tr>
+<tr>
+<td><code>mattermost_add_member</code> ✅</td>
+<td>채널에 사용자 추가</td>
+</tr>
+</tbody></table>
+<h3 id="위험-도구-역할-mcp-admin-기본-비활성화"><a class="anchor" href="#위험-도구-역할-mcp-admin-기본-비활성화" aria-hidden="true">#</a>위험 도구 (역할 <code>mcp-admin</code>, <strong>기본 비활성화</strong>)</h3>
+<table>
+<thead>
+<tr>
+<th>도구</th>
+<th>하는 일</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>mattermost_delete_post</code> ✅</td>
+<td>메시지 삭제</td>
+</tr>
+<tr>
+<td><code>mattermost_archive_channel</code> ✅</td>
+<td>채널 보관(아카이브)</td>
+</tr>
+</tbody></table>
+<h3 id="호환-이름-기본-꺼짐"><a class="anchor" href="#호환-이름-기본-꺼짐" aria-hidden="true">#</a>호환 이름 (기본 꺼짐)</h3>
+<p>관리자가 켜면 Mattermost 공식 MCP와 같은 이름도 쓸 수 있습니다: <code>dm</code>(= <code>mattermost_send_dm</code>), <code>group_message</code>(= <code>mattermost_send_group_dm</code>), <code>create_post</code>(= <code>mattermost_post_message</code>), <code>search_users</code>(= <code>mattermost_users</code>).</p>
+<h3 id="호출-한도"><a class="anchor" href="#호출-한도" aria-hidden="true">#</a>호출 한도</h3>
+<p>사용자별로 분당 호출 수가 제한됩니다(기본값: 조회 60, 검색 20, 쓰기 10, 파일 5회 — 관리자 설정에 따라 다를 수 있음). 넘으면 <code>RATE_LIMITED</code>와 함께 몇 초 뒤 다시 시도하라는 안내가 나옵니다.</p>
+<hr>
+<h2 id="11-내-활동세션연결된-앱"><a class="anchor" href="#11-내-활동세션연결된-앱" aria-hidden="true">#</a>11. 내 활동·세션·연결된 앱</h2>
+<h3 id="내-활동"><a class="anchor" href="#내-활동" aria-hidden="true">#</a>내 활동</h3>
+<p><strong>내 공간 → 내 활동</strong>에서 내 계정으로 실행된 도구 호출, 로그인, 키 변경 기록을 볼 수 있습니다. 작업·대상·오류 코드·요청 ID로 검색하고 분류(도구 호출/인증/OAuth/키/매핑)와 결과(성공/실패/거부/대기)로 거를 수 있습니다.</p>
+<blockquote>
+<p>모르는 기록이 있다면 해당 API 키를 폐기하고 관리자에게 알리세요.</p>
+</blockquote>
+<p><img src="screenshots/activity.webp" alt="내 활동" loading="lazy" decoding="async" class="doc-shot" /></p>
+<h3 id="세션연결된-앱"><a class="anchor" href="#세션연결된-앱" aria-hidden="true">#</a>세션·연결된 앱</h3>
+<p><strong>내 공간 → 세션·연결된 앱</strong></p>
+<p><img src="screenshots/my-sessions.webp" alt="세션·연결된 앱" loading="lazy" decoding="async" class="doc-shot" /></p>
+<table>
+<thead>
+<tr>
+<th>영역</th>
+<th>내용</th>
+<th>할 수 있는 일</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>연결된 앱 (OAuth)</td>
+<td>허용한 AI 클라이언트, 승인·마지막 사용 시각, 활성 토큰 수, &quot;동의 기억됨&quot; 표시</td>
+<td><strong>연결 끊기</strong> — 그 앱의 토큰이 즉시 폐기됨</td>
+</tr>
+<tr>
+<td>브라우저 세션</td>
+<td>브라우저, 로그인 방식(Keycloak/비밀번호), IP, 마지막 활동</td>
+<td>현재 세션이 아닌 것은 <strong>로그아웃</strong></td>
+</tr>
+<tr>
+<td>MCP 세션</td>
+<td>AI 클라이언트가 접속할 때마다 생기는 세션. 24시간 활동이 없으면 자동 종료</td>
+<td>개별 종료</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="12-개인-암호화-키"><a class="anchor" href="#12-개인-암호화-키" aria-hidden="true">#</a>12. 개인 암호화 키</h2>
+<p><strong>내 공간 → 개인 암호화 키</strong>. Mattermost 토큰 같은 내 자격증명은 <strong>나만의 데이터 키</strong>로 암호화됩니다.</p>
+<p><img src="screenshots/my-encryption.webp" alt="개인 암호화 키" loading="lazy" decoding="async" class="doc-shot" /></p>
+<pre class="mermaid">flowchart LR
+    MK[마스터 키] -->|감쌈| DEK[내 데이터 키 vN]
+    DEK -->|AES-256-GCM| C[자격증명&lt;br/>Mattermost 토큰 등]</pre>
+<ul>
+<li>암호문에는 소유자 정보가 함께 묶여 있어, 다른 사용자의 레코드로 옮겨 붙여도 복호화되지 않습니다.</li>
+<li><strong>지금 회전</strong>을 누르면 새 키가 만들어지고, 저장된 자격증명이 즉시 다시 암호화된 뒤 이전 키는 폐기됩니다. 진행 중인 작업에는 영향이 없으니 언제든 회전해도 됩니다.</li>
+<li>현재 키가 권장 주기를 넘으면 경고가 표시됩니다.</li>
+<li>아직 자격증명을 저장하지 않았다면 키가 없을 수 있으며, 처음 저장할 때 자동으로 만들어집니다.</li>
+</ul>
+<hr>
+<h2 id="13-프로필테마"><a class="anchor" href="#13-프로필테마" aria-hidden="true">#</a>13. 프로필·테마</h2>
+<p><strong>내 공간 → 프로필·환경설정</strong>(<code>G</code> → <code>P</code>)</p>
+<p><img src="screenshots/profile.webp" alt="프로필·환경설정" loading="lazy" decoding="async" class="doc-shot" /></p>
+<ul>
+<li><strong>프로필</strong>: 표시 이름과 이메일 수정. Keycloak SSO 계정은 이메일·역할을 Keycloak에서 관리하므로 이메일을 바꿀 수 없습니다.</li>
+<li><strong>비밀번호 변경</strong>(로컬 비밀번호가 있는 계정만): 8자 이상, 영문 대/소문자·숫자·특수문자 중 3종류 이상. 변경하면 다른 브라우저 세션은 로그아웃됩니다.</li>
+<li><strong>화면</strong>: 테마 <em>라이트 / 다크 / 시스템</em>, <strong>촘촘한 화면(compact)</strong> 토글. 테마는 <code>Shift + T</code>, 상단 테마 버튼, 프로필 메뉴에서도 바꿀 수 있습니다.</li>
+<li><strong>계정 정보</strong>: 아이디, 역할, 가입일, 최근 로그인, 서비스 버전(mmcp v1.0.0).</li>
+</ul>
+<p>모바일에서도 같은 화면을 쓸 수 있습니다(왼쪽 위 메뉴 버튼으로 메뉴 열기).</p>
+<p><img src="screenshots/mobile-connect.webp" alt="모바일 연결 가이드" loading="lazy" decoding="async" class="doc-shot" /></p>
+<hr>
+<h2 id="14-faq--문제-해결"><a class="anchor" href="#14-faq--문제-해결" aria-hidden="true">#</a>14. FAQ / 문제 해결</h2>
+<h3 id="자주-보는-오류-코드"><a class="anchor" href="#자주-보는-오류-코드" aria-hidden="true">#</a>자주 보는 오류 코드</h3>
+<table>
+<thead>
+<tr>
+<th>코드</th>
+<th>의미</th>
+<th>할 일</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>IDENTITY_NOT_MAPPED</code></td>
+<td>mmcp 계정이 Mattermost 계정과 연결되지 않음(또는 연결된 계정이 비활성화됨)</td>
+<td><a href="#4-mattermost-%EA%B3%84%EC%A0%95-%EC%97%B0%EA%B2%B0">Mattermost 연결</a>에서 자동 연결하거나 개인 액세스 토큰 등록. 안 되면 관리자에게 수동 매핑 요청</td>
+</tr>
+<tr>
+<td><code>CREDENTIAL_REQUIRED</code></td>
+<td>Mattermost 개인 액세스 토큰이 필요함</td>
+<td>Mattermost 연결 화면에서 토큰 등록</td>
+</tr>
+<tr>
+<td><code>CREDENTIAL_INVALID</code></td>
+<td>저장된 토큰이 만료·무효</td>
+<td>토큰 다시 등록 또는 회전</td>
+</tr>
+<tr>
+<td><code>PERMISSION_DENIED</code></td>
+<td>필요한 역할이 없음, 읽기 전용 키로 쓰기 시도, 또는 Mattermost 권한 부족(예: 남의 메시지 수정)</td>
+<td>필요한 역할(예: <code>mcp-writer</code>)은 관리자에게 요청. 쓰기에는 일반 키/<code>mcp</code> 권한 사용</td>
+</tr>
+<tr>
+<td><code>TOOL_DISABLED</code></td>
+<td>관리자가 끈 도구</td>
+<td>관리자에게 문의</td>
+</tr>
+<tr>
+<td><code>POLICY_BLOCKED</code></td>
+<td>비공개 채널·DM·그룹 메시지 접근이 관리자 정책으로 차단됨</td>
+<td>관리자에게 문의</td>
+</tr>
+<tr>
+<td><code>RATE_LIMITED</code></td>
+<td>분당 호출 한도 초과</td>
+<td>안내된 시간(초) 후 다시 시도</td>
+</tr>
+<tr>
+<td><code>APPROVAL_REQUIRED</code></td>
+<td>쓰기 작업 전 확인 필요 — 오류가 아니라 정상 단계</td>
+<td>미리보기를 확인하고 동의하면 AI가 다시 호출</td>
+</tr>
+<tr>
+<td><code>APPROVAL_EXPIRED</code> / <code>APPROVAL_MISMATCH</code> / <code>APPROVAL_USED</code> / <code>APPROVAL_REJECTED</code></td>
+<td>승인 토큰을 쓸 수 없음</td>
+<td>AI에게 처음부터 다시 요청</td>
+</tr>
+<tr>
+<td><code>AMBIGUOUS_RECIPIENT</code></td>
+<td>받는 사람 이름이 여러 명과 일치</td>
+<td>후보 중 한 명을 골라 username으로 알려 주기</td>
+</tr>
+<tr>
+<td><code>RECIPIENT_NOT_FOUND</code></td>
+<td>받는 사람을 찾지 못함</td>
+<td>철자 확인 또는 <code>mattermost_users</code>로 검색</td>
+</tr>
+<tr>
+<td><code>CHANNEL_NOT_FOUND</code> / <code>AMBIGUOUS_CHANNEL</code></td>
+<td>채널이 없거나 접근 불가 / 여러 팀에 같은 이름</td>
+<td>채널 목록 확인, <code>팀/채널</code> 형식 사용</td>
+</tr>
+<tr>
+<td><code>IDENTITY_CONFLICT</code></td>
+<td>등록한 토큰 주인이 내 계정과 다르거나, 그 Mattermost 계정이 이미 다른 사용자와 연결됨</td>
+<td>내 토큰인지 확인. 그래도 안 되면 관리자에게 재매핑 요청</td>
+</tr>
+<tr>
+<td><code>MATTERMOST_UNAVAILABLE</code> / <code>MATTERMOST_ERROR</code></td>
+<td>Mattermost 연결 문제</td>
+<td>잠시 후 재시도, 계속되면 관리자에게 문의</td>
+</tr>
+<tr>
+<td><code>INTERNAL</code></td>
+<td>서버 내부 오류</td>
+<td>메시지의 <strong>요청 ID</strong>를 관리자에게 전달</td>
+</tr>
+</tbody></table>
+<h3 id="질문과-답"><a class="anchor" href="#질문과-답" aria-hidden="true">#</a>질문과 답</h3>
+<p><strong>Q. AI 클라이언트에 도구가 하나도 안 보여요.</strong>
+연결이 끝났는지 확인하세요(Claude Code는 <code>/mcp</code>에서 Authenticate). 그다음 도구 실행기에서 흐리게 표시된 도구의 이유를 확인합니다.</p>
+<p><strong>Q. 조회는 되는데 메시지 발송 도구가 안 보여요.</strong>
+읽기 전용 API 키를 쓰고 있거나, OAuth 동의 시 <code>mcp:read</code>만 받았거나, <code>mcp-writer</code> 역할이 없는 경우입니다.</p>
+<p><strong>Q. AI가 동의도 없이 메시지를 보낼 수 있나요?</strong>
+승인 모드인 도구는 <code>confirm_token</code> 없이 실행되지 않습니다. 단, 이모지 반응(<code>mattermost_add_reaction</code>)처럼 관리자가 자동 실행으로 둔 도구는 확인 없이 실행됩니다. 의심스러운 요청은 승인 요청 화면에서 거절하세요.</p>
+<p><strong>Q. API 키를 잃어버렸어요 / 유출된 것 같아요.</strong>
+비밀값은 다시 볼 수 없습니다. <strong>회전 → 즉시 폐기</strong>로 새 키를 받거나 키를 폐기하세요. 그다음 <a href="#11-%EB%82%B4-%ED%99%9C%EB%8F%99%EC%84%B8%EC%85%98%EC%97%B0%EA%B2%B0%EB%90%9C-%EC%95%B1">내 활동</a>에서 모르는 기록이 없는지 확인합니다.</p>
+<p><strong>Q. 노트북을 바꿨어요.</strong>
+API 키는 <strong>회전 → 24시간 유예</strong>로 새 키를 받아 교체하고, 예전 기기의 OAuth 연결은 세션·연결된 앱에서 끊으세요.</p>
+<p><strong>Q. 로그아웃했는데 다시 자동 로그인되지 않아요.</strong>
+의도된 동작입니다. 직접 로그아웃한 직후에는 사일런트 SSO가 실행되지 않으니 <strong>Keycloak SSO로 로그인</strong> 버튼을 누르세요.</p>
+<p><strong>Q. 봇이 &quot;○○님의 요청&quot;으로 메시지를 보내요.</strong>
+관리자가 발신 계정을 봇(또는 자동)으로 설정했기 때문입니다. 자동 모드라면 내 Mattermost 토큰을 등록하면 내 명의로 보냅니다.</p>
+<p><strong>Q. 지금 쓰는 mmcp 버전은?</strong>
+로그인 화면 하단, 프로필 메뉴, 프로필·환경설정의 계정 정보에서 확인할 수 있습니다. 이 가이드는 <strong>mmcp v1.0.0</strong> 기준입니다.</p>
+</article>
+  </div>
+  <footer class="footer"><div class="wrap"><span>mmcp v1.0.0 · MIT License</span><span><a href="./">홈</a> · <a href="https://github.com/hkjang/mmcp/releases">다운로드</a></span></div></footer>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'
+    mermaid.initialize({ startOnLoad: true, theme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default' })
+  </script>
+</body>
+</html>

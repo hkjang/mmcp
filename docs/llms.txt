@@ -1,0 +1,25 @@
+# mmcp — Mattermost MCP Gateway
+
+> mmcp is an MCP (Model Context Protocol) server that lets AI agents (Claude Code, Codex, Cursor, in-house AI portals) use Mattermost with the permissions of the signed-in user. Users authenticate with Keycloak (OIDC, silent SSO); mmcp maps the Keycloak `sub` to a fixed Mattermost `user_id` and calls the Mattermost REST API v4 with that user's own credential. Writes need two-phase approval. It ships as one offline Docker image configured by four environment variables.
+
+Version described: 1.0.0 (image `mmcp:v1.0.0`, offline archive `mmcp-v1.0.0.tar.gz`).
+
+## Key facts
+- Environment variables (the only four): POSTGRES_DSN, BOOTSTRAP_ADMIN, BOOTSTRAP_ADMIN_PASSWORD, ENCRYPTION_KEY. Everything else is configured in the admin console and stored in PostgreSQL.
+- MCP endpoint: `{PublicURL}/mcp`, Streamable HTTP, protocol 2025-11-25 (also 2025-06-18, 2025-03-26, 2024-11-05).
+- Authentication to /mcp: mmcp OAuth 2.1 authorization server (dynamic client registration, PKCE S256, rotating refresh tokens with reuse detection), Keycloak access tokens verified via JWKS, or personal API keys (`mmcp_pk_…`, optional read-only).
+- Identity: first discovery by `preferred_username` = Mattermost username; afterwards Keycloak `sub` ↔ Mattermost `user_id` is fixed. A deleted/re-created or renamed-onto account is blocked with IDENTITY_CONFLICT until an administrator re-verifies.
+- Reads always use the user's own Mattermost personal access token (auto-issued with an admin service token, or registered by the user). mmcp never collects Mattermost passwords.
+- Sending: as the user, as a bot with "requested by" attribution and `props.requested_by`, or automatic fallback.
+- 28 tools: mattermost_me, teams, channels, channel, search_posts, get_post, get_thread, recent_posts, users, unread, pinned_posts, get_file, post_message, reply, update_post, add_reaction, upload_file, create_channel, add_member, delete_post, archive_channel, send_dm, send_group_dm, reply_dm, upload_dm_file, read_dm, recent_dms, search_dm (all prefixed `mattermost_`). Optional aliases compatible with the official Mattermost MCP: dm, group_message, create_post, search_users.
+- Write tools return APPROVAL_REQUIRED with a preview and `confirm_token` first; the client must show the preview and call again with the same arguments plus `confirm_token` only after the user agrees.
+- Recipient resolution accepts username, email or Korean full name; multiple matches return AMBIGUOUS_RECIPIENT with candidates.
+- Read results are wrapped as `untrusted_content` to resist prompt injection.
+- Encryption: master key (ENCRYPTION_KEY, comma list for rotation) → per-user data keys (AES-256-GCM with AAD) → credentials. Per-user key rotation and zero-downtime master key rotation (rewrap).
+
+## Docs
+- [Homepage](https://hkjang.github.io/mmcp/)
+- [User guide (Korean)](https://hkjang.github.io/mmcp/user-guide.html)
+- [Administrator guide (Korean)](https://hkjang.github.io/mmcp/admin-guide.html)
+- [Source](https://github.com/hkjang/mmcp)
+- [Releases](https://github.com/hkjang/mmcp/releases)

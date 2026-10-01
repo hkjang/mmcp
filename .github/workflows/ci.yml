@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: gofmt
+        run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+      - run: go vet ./...
+      - run: ./scripts/verify-version.sh
+
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: mmcp
+          POSTGRES_PASSWORD: test-password
+          POSTGRES_DB: mmcp_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U mmcp -d mmcp_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Go tests (unit + PostgreSQL integration, race)
+        run: go test -race -count=1 ./...
+        env:
+          TEST_POSTGRES_DSN: postgres://mmcp:test-password@localhost:5432/mmcp_test?sslmode=disable
+      - name: Web tests and build
+        working-directory: web
+        run: |
+          npm ci --no-audit --no-fund
+          node node_modules/vitest/vitest.mjs run
+          node node_modules/typescript/bin/tsc -b
+          node node_modules/vite/bin/vite.js build
+      - name: Docker build
+        run: docker build --build-arg VERSION=v$(cat VERSION) --tag mmcp:ci .
