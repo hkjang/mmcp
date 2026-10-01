@@ -1,0 +1,21 @@
+# Build output
+/bin/
+/dist/
+/web/dist/
+/release/
+/internal/ui/dist/*
+!/internal/ui/dist/.gitkeep
+
+# Dependencies and local state
+/web/node_modules/
+node_modules/
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+.idea/
+.vscode/
+coverage.out
+playwright-report/
+test-results/

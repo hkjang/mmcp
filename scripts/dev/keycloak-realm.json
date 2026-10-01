@@ -1,0 +1,41 @@
+{
+  "realm": "company",
+  "enabled": true,
+  "displayName": "Company SSO",
+  "accessTokenLifespan": 900,
+  "roles": {
+    "realm": [
+      {"name": "mcp-user"}, {"name": "mcp-writer"}, {"name": "mcp-file"},
+      {"name": "mcp-channel-admin"}, {"name": "mcp-admin"}
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "mmcp",
+      "name": "mmcp Mattermost MCP Gateway",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "mmcp-dev-client-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["http://127.0.0.1:18088/*", "http://localhost:18088/*", "http://127.0.0.1:8080/*", "http://localhost:8080/*"],
+      "webOrigins": ["+"],
+      "attributes": {"pkce.code.challenge.method": "S256", "post.logout.redirect.uris": "+"},
+      "protocolMappers": [
+        {"name": "aud-mmcp", "protocol": "openid-connect", "protocolMapper": "oidc-audience-mapper",
+         "config": {"included.client.audience": "mmcp", "access.token.claim": "true", "id.token.claim": "false"}}
+      ]
+    }
+  ],
+  "users": [
+    {"username": "hkjang", "enabled": true, "email": "hkjang@example.com", "emailVerified": true, "firstName": "형국", "lastName": "장",
+     "credentials": [{"type": "password", "value": "Passw0rd!demo", "temporary": false}], "realmRoles": ["mcp-user", "mcp-writer", "mcp-file", "default-roles-company"]},
+    {"username": "kim", "enabled": true, "email": "kim@example.com", "emailVerified": true, "firstName": "민수", "lastName": "김",
+     "credentials": [{"type": "password", "value": "Passw0rd!demo", "temporary": false}], "realmRoles": ["mcp-user", "default-roles-company"]},
+    {"username": "park", "enabled": true, "email": "park@example.com", "emailVerified": true, "firstName": "지훈", "lastName": "박",
+     "credentials": [{"type": "password", "value": "Passw0rd!demo", "temporary": false}], "realmRoles": ["mcp-user", "mcp-admin", "default-roles-company"]},
+    {"username": "test01", "enabled": true, "email": "test01@example.com", "emailVerified": true, "firstName": "테스트", "lastName": "사용자",
+     "credentials": [{"type": "password", "value": "Passw0rd!demo", "temporary": false}], "realmRoles": ["mcp-user", "default-roles-company"]}
+  ]
+}
