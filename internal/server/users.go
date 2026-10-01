@@ -27,24 +27,27 @@ const (
 var KnownRoles = []string{RoleAdmin, RoleMCPUser, RoleMCPWriter, RoleMCPFile, RoleChannelAdmin, RoleMCPAdmin}
 
 type User struct {
-	ID           uuid.UUID       `json:"id"`
-	Username     string          `json:"username"`
-	DisplayName  string          `json:"display_name"`
-	Email        string          `json:"email"`
-	Source       string          `json:"source"`
-	OIDCSub      *string         `json:"oidc_sub,omitempty"`
-	ManualRoles  []string        `json:"manual_roles"`
-	IdPRoles     []string        `json:"idp_roles"`
-	Roles        []string        `json:"roles"`
-	Status       string          `json:"status"`
-	Preferences  json.RawMessage `json:"preferences"`
-	CreatedAt    time.Time       `json:"created_at"`
-	LastLoginAt  *time.Time      `json:"last_login_at,omitempty"`
-	HasPassword  bool            `json:"has_password"`
-	passwordHash *string
-	failed       int
-	lockedUntil  *time.Time
+	ID            uuid.UUID       `json:"id"`
+	Username      string          `json:"username"`
+	DisplayName   string          `json:"display_name"`
+	Email         string          `json:"email"`
+	Source        string          `json:"source"`
+	OIDCSub       *string         `json:"oidc_sub,omitempty"`
+	ManualRoles   []string        `json:"manual_roles"`
+	IdPRoles      []string        `json:"idp_roles"`
+	Roles         []string        `json:"roles"`
+	Status        string          `json:"status"`
+	Preferences   json.RawMessage `json:"preferences"`
+	CreatedAt     time.Time       `json:"created_at"`
+	LastLoginAt   *time.Time      `json:"last_login_at,omitempty"`
+	HasPassword   bool            `json:"has_password"`
+	EmailVerified bool            `json:"email_verified"`
+	passwordHash  *string
+	failed        int
+	lockedUntil   *time.Time
 }
+
+func (u *User) emailVerified() bool { return u.EmailVerified }
 
 func (u *User) IsAdmin() bool { return slices.Contains(u.Roles, RoleAdmin) }
 
@@ -88,12 +91,12 @@ func (u *User) computeRoles() {
 	sort.Strings(u.Roles)
 }
 
-const userColumns = `id, username, display_name, email, source, oidc_sub, manual_roles, idp_roles, status, preferences, created_at, last_login_at, password_hash, failed_logins, locked_until`
+const userColumns = `id, username, display_name, email, source, oidc_sub, manual_roles, idp_roles, status, preferences, created_at, last_login_at, password_hash, failed_logins, locked_until, email_verified`
 
 func scanUser(row pgx.Row) (*User, error) {
 	u := &User{}
 	if err := row.Scan(&u.ID, &u.Username, &u.DisplayName, &u.Email, &u.Source, &u.OIDCSub, &u.ManualRoles, &u.IdPRoles,
-		&u.Status, &u.Preferences, &u.CreatedAt, &u.LastLoginAt, &u.passwordHash, &u.failed, &u.lockedUntil); err != nil {
+		&u.Status, &u.Preferences, &u.CreatedAt, &u.LastLoginAt, &u.passwordHash, &u.failed, &u.lockedUntil, &u.EmailVerified); err != nil {
 		return nil, err
 	}
 	u.HasPassword = u.passwordHash != nil && *u.passwordHash != ""

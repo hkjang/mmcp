@@ -53,7 +53,7 @@ func TestArgsHashIgnoresConfirmTokenAndOrder(t *testing.T) {
 }
 
 func TestSafeNext(t *testing.T) {
-	for in, want := range map[string]string{"/admin": "/admin", "//evil.com": "/", "https://evil.com": "/", "/\\evil": "/", "": "/", "/a\r\nb": "/"} {
+	for in, want := range map[string]string{"/admin": "/admin", "//evil.com": "/", "https://evil.com": "/", "/\\evil": "/", "": "/", "/a\r\nb": "/", "/\t/evil.example": "/", "/%09/x": "/%09/x", "/admin?tab=1": "/admin?tab=1", "/x\\y": "/"} {
 		if got := safeNext(in); got != want {
 			t.Errorf("safeNext(%q)=%q want %q", in, got, want)
 		}

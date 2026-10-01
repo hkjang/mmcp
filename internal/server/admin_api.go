@@ -162,11 +162,8 @@ func (s *Server) adminDashboard(w http.ResponseWriter, r *http.Request) {
 	out["counts"] = map[string]int64{"users": users, "active_users": active, "sso_users": sso, "mapped": mapped, "mapping_errors": mapErr,
 		"credentials": creds, "mcp_clients": clients, "active_sessions": sessions, "api_keys": keys, "pending_approvals": approvals}
 
-	today := time.Now().Truncate(24 * time.Hour)
-	if loc := time.Local; loc != nil {
-		y, m, d := time.Now().Date()
-		today = time.Date(y, m, d, 0, 0, 0, 0, loc)
-	}
+	y, mo, d := time.Now().In(zone()).Date()
+	today := time.Date(y, mo, d, 0, 0, 0, 0, zone())
 	byCat := map[string]int64{}
 	var errorsToday, callsToday int64
 	rows, err := s.db.Query(ctx, `SELECT action, result, count(*) FROM audit_events WHERE category='tool' AND ts >= $1 GROUP BY action, result`, today)
@@ -454,7 +451,7 @@ func (s *Server) adminListUsers(w http.ResponseWriter, r *http.Request) {
 			var hasCred *bool
 			var keys int64
 			err := rows.Scan(&u.ID, &u.Username, &u.DisplayName, &u.Email, &u.Source, &u.OIDCSub, &u.ManualRoles, &u.IdPRoles, &u.Status, &u.Preferences,
-				&u.CreatedAt, &u.LastLoginAt, &u.passwordHash, &u.failed, &u.lockedUntil, &mStatus, &mmUser, &hasCred, &keys)
+				&u.CreatedAt, &u.LastLoginAt, &u.passwordHash, &u.failed, &u.lockedUntil, &u.EmailVerified, &mStatus, &mmUser, &hasCred, &keys)
 			if err != nil {
 				return nil, err
 			}
@@ -1469,8 +1466,8 @@ func (s *Server) adminAuditExport(w http.ResponseWriter, r *http.Request) {
 	cw := csv.NewWriter(w)
 	_ = cw.Write([]string{"id", "ts", "category", "action", "actor", "mm_username", "target", "result", "error_code", "latency_ms", "ip", "client", "request_id", "details"})
 	for _, a := range items {
-		_ = cw.Write([]string{strconv.FormatInt(a.ID, 10), a.TS.Format(time.RFC3339), a.Category, a.Action, csvSafe(a.Actor), csvSafe(a.MMUsername), csvSafe(a.Target), a.Result, a.ErrorCode,
-			strconv.Itoa(a.LatencyMS), a.IP, csvSafe(a.Client), a.RequestID, csvSafe(string(a.Details))})
+		_ = cw.Write([]string{strconv.FormatInt(a.ID, 10), a.TS.Format(time.RFC3339), csvSafe(a.Category), csvSafe(a.Action), csvSafe(a.Actor), csvSafe(a.MMUsername), csvSafe(a.Target), csvSafe(a.Result), csvSafe(a.ErrorCode),
+			strconv.Itoa(a.LatencyMS), csvSafe(a.IP), csvSafe(a.Client), csvSafe(a.RequestID), csvSafe(string(a.Details))})
 	}
 	cw.Flush()
 	s.adminAudit(r.Context(), s.clientIP(r), "audit_export", "", "success", map[string]any{"rows": len(items)})

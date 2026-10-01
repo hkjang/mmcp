@@ -41,6 +41,7 @@ export default function Policies() {
                 <Col span={12}>{num('approval_ttl_minutes', '승인 유효시간', 1, 1440, undefined, '분')}</Col>
                 <Col span={12}>{sw('untrusted_wrapping', '조회 결과에 신뢰불가 표시', '프롬프트 인젝션 방어용 provenance 래핑')}</Col>
                 <Col span={12}>{sw('audit_message_body', '감사 로그에 본문 저장', '기본 꺼짐: 질의 해시·건수만 저장')}</Col>
+                <Col span={24}>{sw('console_approval', '콘솔 승인 필수 (엄격 모드)', '켜면 AI 대화 속 동의만으로는 실행되지 않고, 사용자가 mmcp 콘솔 \'승인 요청\' 화면에서 직접 승인해야 합니다. 프롬프트 인젝션으로 AI가 스스로 승인하는 것을 막습니다. 위험 도구(삭제·보관)는 항상 이 방식입니다.')}</Col>
               </Row>
             </Card>
             <Card title="서버 안내문 (instructions)">

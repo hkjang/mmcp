@@ -29,6 +29,9 @@ export default function GeneralSettings() {
           <Col xs={24} xl={10}>
             <Card title="운영" style={{ marginBottom: 16 }}>
               <Form.Item name="audit_retention_days" label="감사 로그 보존 기간"><InputNumber min={1} max={3650} style={{ width: '100%' }} suffix="일" /></Form.Item>
+              <Form.Item name="timezone" label="표시 시간대" extra="도구의 날짜 인자(since=2026-10-01)와 결과 시각을 이 시간대로 해석합니다. 컨테이너 TZ와 무관합니다.">
+                <Select showSearch options={['Asia/Seoul', 'UTC', 'Asia/Tokyo', 'Asia/Shanghai', 'Asia/Singapore', 'Europe/London', 'America/New_York', 'America/Los_Angeles'].map((v) => ({ value: v, label: v }))} />
+              </Form.Item>
               <Form.Item name="log_level" label="서버 로그 레벨">
                 <Select options={['debug', 'info', 'warn', 'error'].map((v) => ({ value: v, label: v }))} />
               </Form.Item>

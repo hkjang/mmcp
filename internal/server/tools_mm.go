@@ -25,7 +25,7 @@ func msTime(ms int64) string {
 	if ms <= 0 {
 		return ""
 	}
-	return time.UnixMilli(ms).Format(time.RFC3339)
+	return time.UnixMilli(ms).In(zone()).Format(time.RFC3339)
 }
 
 func truncate(s string, max int) (string, bool) {
@@ -170,6 +170,10 @@ func (tc *toolCtx) resolveChannel(ctx context.Context, token, ref string) (*matt
 	}
 	if err := tc.checkChannelType(ch); err != nil {
 		return nil, err
+	}
+	if (ch.Type == "D" || ch.Type == "G") && !strings.HasPrefix(tc.def.Category, "dm_") {
+		// keep the DM tools' own policy (enable/approval/roles) authoritative
+		return nil, &toolError{Code: "POLICY_BLOCKED", Message: "DM/그룹 메시지는 mattermost_read_dm, mattermost_send_dm 같은 DM 전용 도구로만 다룰 수 있습니다"}
 	}
 	tc.details["channel_id"] = ch.ID
 	return ch, nil
@@ -383,7 +387,7 @@ func (s *Server) registerTools() {
 		Schema:      obj(map[string]any{"post_id": pStr("스레드에 속한 아무 메시지 ID"), "limit": pInt("최대 메시지 수", 100, 1, 500)}, "post_id"), Handler: toolGetThread})
 	def(&toolDef{Name: "mattermost_recent_posts", Title: "최근 메시지", Category: catRead, ReadOnly: true, Idempotent: true, DefaultEnabled: true,
 		Description: "채널의 최근 메시지를 최신순으로 조회합니다. since(YYYY-MM-DD 또는 RFC3339)로 이후 메시지만 받을 수 있습니다.",
-		Schema: obj(map[string]any{"channel": pStr("채널 ID / team/channel / 채널 이름 / @username(DM)"), "limit": pInt("최대 개수", 30, 1, 200),
+		Schema: obj(map[string]any{"channel": pStr("채널 ID / team/channel / 채널 이름 (DM은 mattermost_read_dm)"), "limit": pInt("최대 개수", 30, 1, 200),
 			"since": pStr("이 시각 이후 (YYYY-MM-DD 또는 RFC3339)")}, "channel"), Handler: toolRecentPosts})
 	def(&toolDef{Name: "mattermost_users", Title: "사용자 검색", Category: catRead, ReadOnly: true, Idempotent: true, DefaultEnabled: true,
 		Description: "username, 이름, 닉네임, 이메일로 Mattermost 사용자를 검색합니다.",
@@ -659,7 +663,7 @@ func (tc *toolCtx) search(ctx context.Context, token, teamRef, terms string, isO
 				continue
 			}
 		}
-		if f.allowedPost(ctx, p, tc.st.MCP.AllowDMSearch) {
+		if f.allowedPost(ctx, p, dm && tc.st.MCP.AllowDMSearch) {
 			kept = append(kept, p)
 		}
 	}
@@ -701,7 +705,13 @@ func (tc *toolCtx) postAllowed(ctx context.Context, token string, p *mattermost.
 		return mmError(err, "채널")
 	}
 	tc.details["channel_id"] = ch.ID
-	return tc.checkChannelType(ch)
+	if err := tc.checkChannelType(ch); err != nil {
+		return err
+	}
+	if (ch.Type == "D" || ch.Type == "G") && !strings.HasPrefix(tc.def.Category, "dm_") {
+		return &toolError{Code: "POLICY_BLOCKED", Message: "DM/그룹 메시지는 DM 전용 도구(mattermost_read_dm 등)로만 다룰 수 있습니다"}
+	}
+	return nil
 }
 
 func toolGetPost(ctx context.Context, tc *toolCtx, a args) (any, error) {
@@ -761,7 +771,7 @@ func parseSince(v string) (int64, error) {
 		return 0, nil
 	}
 	if datePattern.MatchString(v) {
-		t, err := time.ParseInLocation("2006-01-02", v, time.Local)
+		t, err := time.ParseInLocation("2006-01-02", v, zone())
 		return t.UnixMilli(), err
 	}
 	t, err := time.Parse(time.RFC3339, v)
@@ -911,7 +921,7 @@ func toolUnread(ctx context.Context, tc *toolCtx, a args) (any, error) {
 		if r.ch.Type == "D" {
 			item["display_name"] = tc.dmPartnerName(ctx, f, &r.ch)
 		}
-		if include && i < 15 {
+		if include && i < 15 && r.ch.Type != "D" && r.ch.Type != "G" {
 			if list, err := tc.mm.ChannelPosts(ctx, token, r.ch.ID, per, r.viewed); err == nil {
 				ps := list.Ordered()
 				if len(ps) > per {
@@ -1046,14 +1056,7 @@ func toolPostMessage(ctx context.Context, tc *toolCtx, a args) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	// resolve with the reader's view when possible so channel names work
-	resolveTok := token
-	if mode == "bot" {
-		if t, err := tc.lookupToken(ctx); err == nil {
-			resolveTok = t
-		}
-	}
-	ch, err := tc.resolveChannel(ctx, resolveTok, a.str("channel", "channel_id"))
+	ch, err := tc.resolveChannel(ctx, tc.readToken(ctx, token, mode), a.str("channel", "channel_id"))
 	if err != nil {
 		return nil, err
 	}
@@ -1085,12 +1088,7 @@ func toolReply(ctx context.Context, tc *toolCtx, a args) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	readTok := token
-	if mode == "bot" {
-		if t, err := tc.lookupToken(ctx); err == nil {
-			readTok = t
-		}
-	}
+	readTok := tc.readToken(ctx, token, mode)
 	parent, err := tc.mm.Post(ctx, readTok, id)
 	if err != nil {
 		return nil, mmError(err, "원본 메시지")
@@ -1234,13 +1232,7 @@ func toolUploadFile(ctx context.Context, tc *toolCtx, a args) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	resolveTok := token
-	if mode == "bot" {
-		if t, err := tc.lookupToken(ctx); err == nil {
-			resolveTok = t
-		}
-	}
-	ch, err := tc.resolveChannel(ctx, resolveTok, a.str("channel", "channel_id"))
+	ch, err := tc.resolveChannel(ctx, tc.readToken(ctx, token, mode), a.str("channel", "channel_id"))
 	if err != nil {
 		return nil, err
 	}

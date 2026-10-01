@@ -103,7 +103,7 @@ function CreateUserModal({ open, onClose, onCreated }: { open: boolean; onClose:
   })
   return (
     <Modal open={open} title="로컬 사용자 추가" onCancel={onClose} onOk={() => form.submit()} okText="추가" confirmLoading={m.isPending} destroyOnHidden>
-      <Alert type="info" showIcon style={{ marginBottom: 16 }} title="Keycloak 사용자는 따로 만들 필요가 없습니다. 같은 아이디로 미리 만들어 두면 첫 SSO 로그인 때 자동으로 연결됩니다." />
+      <Alert type="info" showIcon style={{ marginBottom: 16 }} title="Keycloak 사용자는 따로 만들 필요가 없습니다. 같은 아이디로 비밀번호 없이(관리자 역할 없이) 미리 만들어 두면 첫 SSO 로그인 때 자동으로 연결됩니다. 비밀번호나 관리자 역할이 있는 로컬 계정은 보안상 자동 연결하지 않습니다." />
       <Form form={form} layout="vertical" onFinish={(v) => m.mutate(v)} initialValues={{ roles: ['mcp-user'] }} preserve={false} name="create-user">
         <Form.Item name="username" label="아이디" rules={[{ required: true, message: '아이디를 입력하세요' }, { pattern: /^[a-z0-9._@-]{2,64}$/, message: '영문 소문자/숫자/._-@ 2~64자' }]} normalize={(v: string) => v?.toLowerCase()}>
           <Input autoComplete="off" placeholder="hkjang" />

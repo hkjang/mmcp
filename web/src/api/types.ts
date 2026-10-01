@@ -31,7 +31,7 @@ export interface Paged<T> { items: T[]; total: number }
 export interface GeneralSettings {
   public_url: string; session_ttl_hours: number; local_login_enabled: boolean; login_max_failures: number; lockout_minutes: number
   cors_origins: string[]; admin_ip_allowlist: string[]; mcp_ip_allowlist: string[]; trust_proxy_headers: boolean; metrics_enabled: boolean
-  audit_retention_days: number; log_level: string; login_notice: string
+  audit_retention_days: number; log_level: string; login_notice: string; timezone: string
 }
 export interface KeycloakSettings {
   enabled: boolean; issuer_url: string; client_id: string; client_secret: string; scopes: string[]; username_claim: string; email_fallback: boolean
@@ -46,7 +46,7 @@ export interface MattermostSettings {
 export interface MCPSettings {
   oauth_mode: 'gateway' | 'keycloak'; dcr_enabled: boolean; access_token_ttl_minutes: number; refresh_token_ttl_days: number; remember_consent: boolean
   allow_public: boolean; allow_private: boolean; allow_dm: boolean; allow_group: boolean; allow_dm_search: boolean; allow_file_download: boolean
-  max_message_chars: number; max_results: number; max_upload_kb: number; audit_message_body: boolean; approval_ttl_minutes: number
+  max_message_chars: number; max_results: number; max_upload_kb: number; audit_message_body: boolean; approval_ttl_minutes: number; console_approval: boolean
   untrusted_wrapping: boolean; compat_aliases: boolean; rate_read: number; rate_search: number; rate_write: number; rate_file: number
   api_key_max_days: number; api_key_require_expiry: boolean; api_key_max_per_user: number; key_rotation_days: number; server_instructions: string
 }

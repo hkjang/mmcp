@@ -15,6 +15,7 @@ import (
 	"net/netip"
 	"runtime/debug"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -77,20 +78,38 @@ func (s *Server) Init(ctx context.Context) error {
 	if _, _, err := s.keys.activeDEK(ctx, "system", nil); err != nil {
 		return fmt.Errorf("system data key: %w (is ENCRYPTION_KEY the same key that initialised this database?)", err)
 	}
-	s.applyLogLevel(s.settings.Get(ctx).General.LogLevel)
+	s.applyGeneral(s.settings.Get(ctx).General)
 	return nil
 }
 
 func (s *Server) onSettingsChanged(section string) {
 	switch section {
 	case "general":
-		s.applyLogLevel(s.settings.Get(context.Background()).General.LogLevel)
+		s.applyGeneral(s.settings.Get(context.Background()).General)
 	case "keycloak":
 		s.oidc.reset()
 	case "mattermost":
 		s.mm.reset()
 		s.idcache.clear()
 	}
+}
+
+func validRequestID(id string) bool {
+	if id == "" || len(id) > 64 {
+		return false
+	}
+	for _, c := range id {
+		if !(c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '-' || c == '_' || c == '.') {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *Server) applyGeneral(g GeneralSettings) {
+	s.applyLogLevel(g.LogLevel)
+	trustProxy.Store(g.TrustProxyHeaders)
+	setDisplayZone(g.Timezone)
 }
 
 func (s *Server) applyLogLevel(level string) {
@@ -184,7 +203,7 @@ func requestIDFrom(ctx context.Context) string {
 func (s *Server) requestID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := r.Header.Get("X-Request-Id")
-		if id == "" || len(id) > 64 || strings.ContainsAny(id, "\r\n\"") {
+		if !validRequestID(id) {
 			id = uuid.NewString()
 		}
 		w.Header().Set("X-Request-Id", id)
@@ -374,10 +393,15 @@ func ipAllowed(ip string, list []string) bool {
 
 // ---- helpers ----
 
+// clientIP: with trusted proxy headers, the rightmost X-Forwarded-For entry
+// is the address our proxy saw; entries to its left are client-supplied.
 func (s *Server) clientIP(r *http.Request) string {
 	if s.settings.Get(r.Context()).General.TrustProxyHeaders {
-		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-			return strings.TrimSpace(strings.Split(xff, ",")[0])
+		if xff := r.Header.Values("X-Forwarded-For"); len(xff) > 0 {
+			parts := strings.Split(xff[len(xff)-1], ",")
+			if ip := strings.TrimSpace(parts[len(parts)-1]); net.ParseIP(ip) != nil {
+				return ip
+			}
 		}
 		if xr := strings.TrimSpace(r.Header.Get("X-Real-Ip")); xr != "" {
 			return xr
@@ -390,8 +414,12 @@ func (s *Server) clientIP(r *http.Request) string {
 	return host
 }
 
+// trustProxy mirrors general.trust_proxy_headers for code paths without
+// access to the settings store (cookie Secure flag, HSTS).
+var trustProxy atomic.Bool
+
 func isHTTPS(r *http.Request) bool {
-	return r.TLS != nil || strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https")
+	return r.TLS != nil || (trustProxy.Load() && strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https"))
 }
 
 // publicBase is the externally visible base URL. The configured Public URL

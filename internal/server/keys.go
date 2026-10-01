@@ -176,9 +176,17 @@ func (k *keyService) DecryptString(ctx context.Context, envelope, aad string) (s
 // RotateUserKey creates a new DEK version for the user, re-encrypts the
 // user's secrets with it and retires the previous version.
 func (k *keyService) RotateUserKey(ctx context.Context, userID uuid.UUID) (int, error) {
-	// decrypt everything owned by the user with current keys first
+	tx, err := k.s.db.Begin(ctx)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback(ctx)
+	// lock the mapping row so a concurrent token save cannot be overwritten
+	// with the ciphertext read here
 	var tokenEnc *string
-	_ = k.s.db.QueryRow(ctx, `SELECT encrypted_token FROM identity_mappings WHERE user_id=$1`, userID).Scan(&tokenEnc)
+	if err := tx.QueryRow(ctx, `SELECT encrypted_token FROM identity_mappings WHERE user_id=$1 FOR UPDATE`, userID).Scan(&tokenEnc); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return 0, err
+	}
 	var token string
 	if tokenEnc != nil && *tokenEnc != "" {
 		t, err := k.DecryptString(ctx, *tokenEnc, mappingTokenAAD(userID))
@@ -187,11 +195,6 @@ func (k *keyService) RotateUserKey(ctx context.Context, userID uuid.UUID) (int, 
 		}
 		token = t
 	}
-	tx, err := k.s.db.Begin(ctx)
-	if err != nil {
-		return 0, err
-	}
-	defer tx.Rollback(ctx)
 	if _, err := tx.Exec(ctx, `UPDATE data_keys SET status='retired', retired_at=now() WHERE owner_type='user' AND owner_id=$1 AND status='active'`, userID); err != nil {
 		return 0, err
 	}

@@ -47,7 +47,7 @@ export default function ConsentPage() {
               <Typography.Text strong>{data.client_name}</Typography.Text>이(가) <Typography.Text strong>{user?.display_name || user?.username}</Typography.Text> 계정으로 mmcp의 Mattermost 도구를 사용하려고 합니다.
             </Typography.Paragraph>
             <Descriptions size="small" column={1} bordered style={{ marginBottom: 16 }} items={[
-{ label: "클라이언트", children: <><Space><ApiOutlined />{data.client_name}<Tag>{data.registration === 'dynamic' ? '자동 등록' : '수동 등록'}</Tag></Space></> },
+{ label: "클라이언트", children: <><Space><ApiOutlined />{data.client_name}<Tag>{data.registration === 'dynamic' ? '자동 등록' : '수동 등록'}</Tag></Space>{data.registration === 'dynamic' && <div style={{ fontSize: 12, opacity: 0.65, marginTop: 4 }}>이름은 클라이언트가 스스로 등록한 값입니다. 돌아갈 주소가 내가 쓰는 앱인지 확인하세요.</div>}</> },
 { label: "돌아갈 주소", children: <><Typography.Text code>{data.redirect_host}</Typography.Text> {loopback && <Tag color="green">로컬 앱</Tag>}</> },
 { label: "권한", children: <>{data.scope.split(' ').map((s) => (
                   <Tag key={s} color={s === 'mcp' ? 'blue' : 'default'}>{s === 'mcp' ? 'mcp — 조회 + 승인 기반 작성' : 'mcp:read — 조회 전용'}</Tag>

@@ -78,6 +78,15 @@ export default function Playground() {
 
   const err = (current?.result.structuredContent as { error?: ToolError } | undefined)?.error
   const approval = err?.code === 'APPROVAL_REQUIRED' ? (err.details as { confirm_token: string; preview: Record<string, unknown>; expires_at: string }) : null
+  const approveAndRun = async (token: string) => {
+    try {
+      // record the approval first: required when the admin enabled console approval
+      await post(`/me/approvals/${token}/approve`)
+    } catch {
+      /* already decided; the re-call reports the real state */
+    }
+    if (current) run.mutate({ ...current.args, confirm_token: token })
+  }
   const candidates = err?.code === 'AMBIGUOUS_RECIPIENT' ? (err.details as { username: string; display_name: string; position: string; email: string }[]) : null
   const props = tool?.schema.properties ?? {}
   const required = new Set(tool?.schema.required ?? [])
@@ -141,7 +150,7 @@ export default function Playground() {
                   <CodeBlock code={JSON.stringify(approval.preview, null, 2)} wrap />
                   <Space style={{ marginTop: 12 }}>
                     <Button icon={<CloseOutlined />} onClick={() => reject.mutate(approval.confirm_token)}>거절</Button>
-                    <Button type="primary" icon={<CheckOutlined />} loading={run.isPending} onClick={() => run.mutate({ ...current.args, confirm_token: approval.confirm_token })}>승인하고 실행</Button>
+                    <Button type="primary" icon={<CheckOutlined />} loading={run.isPending} onClick={() => void approveAndRun(approval.confirm_token)}>승인하고 실행</Button>
                   </Space>
                 </Card>
               )}

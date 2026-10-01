@@ -485,3 +485,36 @@ func TestIntegrationSettingsSecretsAreEncryptedAndMasked(t *testing.T) {
 		t.Fatalf("missing X-Requested-With must be rejected, got %d", resp.StatusCode)
 	}
 }
+
+func TestIntegrationConsoleApprovalAndEmailTakeover(t *testing.T) {
+	h := newHarness(t)
+	admin := h.login("admin", "Admin!2345678")
+	h.call(admin, "PUT", "/api/admin/settings/mcp", map[string]any{"console_approval": true}, 200)
+	h.call(admin, "POST", "/api/admin/users", map[string]any{"username": "hkjang", "password": "Str0ng-pass!", "roles": []string{"mcp-writer"}}, 201)
+	user := h.login("hkjang", "Str0ng-pass!")
+	key := h.call(user, "POST", "/api/me/api-keys", map[string]any{"name": "k", "expires_days": 30}, 201)["secret"].(string)
+
+	args := map[string]any{"recipient": "kim", "message": "hello"}
+	sc, _ := toolOut(h.mcp(key, "tools/call", map[string]any{"name": "mattermost_send_dm", "arguments": args}))
+	token := sc["error"].(map[string]any)["details"].(map[string]any)["confirm_token"].(string)
+	args["confirm_token"] = token
+	// strict mode: the AI cannot approve its own request
+	sc, _ = toolOut(h.mcp(key, "tools/call", map[string]any{"name": "mattermost_send_dm", "arguments": args}))
+	if errCode(sc) != "APPROVAL_PENDING" || len(h.mm.posts) != 0 {
+		t.Fatalf("strict approval must wait for the console, got %v", sc)
+	}
+	h.call(user, "POST", "/api/me/approvals/"+token+"/approve", nil, 200)
+	if sc, isErr := toolOut(h.mcp(key, "tools/call", map[string]any{"name": "mattermost_send_dm", "arguments": args})); isErr || len(h.mm.posts) != 1 {
+		t.Fatalf("after console approval: %v", sc)
+	}
+
+	// a local user cannot select someone else's Mattermost account through a self-set email
+	h.call(admin, "PUT", "/api/admin/settings/mattermost", map[string]any{"email_fallback": true}, 200)
+	h.call(admin, "POST", "/api/admin/users", map[string]any{"username": "mallory", "password": "Str0ng-pass!", "roles": []string{"mcp-user"}}, 201)
+	mal := h.login("mallory", "Str0ng-pass!")
+	h.call(mal, "PUT", "/api/me/profile", map[string]any{"display_name": "m", "email": "kim@example.com"}, 200)
+	res := h.call(mal, "POST", "/api/me/mattermost/link", nil, 200)
+	if m, _ := res["mapping"].(map[string]any); m != nil && m["mm_username"] == "kim" {
+		t.Fatal("self-asserted email must not map to another user's Mattermost account")
+	}
+}

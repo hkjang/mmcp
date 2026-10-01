@@ -33,6 +33,7 @@ type GeneralSettings struct {
 	AuditRetentionDays int      `json:"audit_retention_days"`
 	LogLevel           string   `json:"log_level"`
 	LoginNotice        string   `json:"login_notice"`
+	Timezone           string   `json:"timezone"`
 }
 
 type KeycloakSettings struct {
@@ -91,6 +92,7 @@ type MCPSettings struct {
 	MaxUploadKB         int    `json:"max_upload_kb"`
 	AuditMessageBody    bool   `json:"audit_message_body"`
 	ApprovalTTLMinutes  int    `json:"approval_ttl_minutes"`
+	ConsoleApproval     bool   `json:"console_approval"`
 	UntrustedWrapping   bool   `json:"untrusted_wrapping"`
 	CompatAliases       bool   `json:"compat_aliases"`
 	RateRead            int    `json:"rate_read"`
@@ -116,7 +118,7 @@ func defaultSettings() AllSettings {
 		General: GeneralSettings{
 			SessionTTLHours: 12, LocalLoginEnabled: true, LoginMaxFailures: 5, LockoutMinutes: 15,
 			CORSOrigins: []string{}, AdminIPAllowlist: []string{}, MCPIPAllowlist: []string{},
-			MetricsEnabled: true, AuditRetentionDays: 180, LogLevel: "info",
+			MetricsEnabled: true, AuditRetentionDays: 180, LogLevel: "info", Timezone: "Asia/Seoul",
 		},
 		Keycloak: KeycloakSettings{
 			Scopes: []string{"openid", "profile", "email"}, UsernameClaim: "preferred_username",
@@ -262,7 +264,14 @@ func (st *settingsStore) Masked(ctx context.Context) AllSettings {
 // current secret, empty values clear it.
 func (st *settingsStore) Save(ctx context.Context, section string, body json.RawMessage, actor string) (AllSettings, error) {
 	current := st.Get(ctx)
-	next := current
+	// deep copy: decoding JSON arrays into a shallow copy would write through
+	// the shared slices into the live cache even when validation fails
+	var next AllSettings
+	if b, err := json.Marshal(current); err != nil {
+		return current, err
+	} else if err := json.Unmarshal(b, &next); err != nil {
+		return current, err
+	}
 	target := sectionPtr(&next, section)
 	if target == nil {
 		return current, fmt.Errorf("unknown settings section %q", section)
@@ -398,6 +407,12 @@ func validateSettings(section string, s *AllSettings) error {
 			g.LogLevel = "info"
 		default:
 			add("로그 레벨은 debug/info/warn/error 중 하나여야 합니다")
+		}
+		if g.Timezone = strings.TrimSpace(g.Timezone); g.Timezone == "" {
+			g.Timezone = "Asia/Seoul"
+		}
+		if _, err := time.LoadLocation(g.Timezone); err != nil {
+			add("시간대 %q를 찾을 수 없습니다 (예: Asia/Seoul)", g.Timezone)
 		}
 		if !g.LocalLoginEnabled && !s.Keycloak.Enabled {
 			add("Keycloak SSO가 꺼진 상태에서는 로컬 로그인을 끌 수 없습니다")

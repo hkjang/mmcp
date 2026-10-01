@@ -289,7 +289,9 @@ func (s *Server) discoverMapping(ctx context.Context, c *mattermost.Client, ms M
 		key = existing.MMUsername
 	}
 	mmUser, err := c.UserByUsername(ctx, ms.ServiceToken, key)
-	if mattermost.StatusOf(err) == http.StatusNotFound && ms.EmailFallback && u.Email != "" {
+	// Email fallback only for Keycloak users whose email Keycloak verified;
+	// a local account's email is self-editable and must never select an identity.
+	if mattermost.StatusOf(err) == http.StatusNotFound && ms.EmailFallback && u.Email != "" && u.Source == "keycloak" && u.emailVerified() {
 		mmUser, err = c.UserByEmail(ctx, ms.ServiceToken, u.Email)
 	}
 	if err != nil {
@@ -486,12 +488,19 @@ func (s *Server) registerUserToken(ctx context.Context, u *User, token string) (
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return nil, err
 	}
+	if m != nil && m.Status == "disabled" {
+		return nil, &toolError{Code: "IDENTITY_DISABLED", Message: "관리자가 Mattermost 연동을 비활성화했습니다. 관리자에게 문의하세요"}
+	}
+	if m != nil && m.Status == "conflict" {
+		return nil, &toolError{Code: "IDENTITY_CONFLICT", Message: "계정 식별 충돌로 차단된 상태입니다. 관리자 재매핑이 필요합니다"}
+	}
 	if m != nil && m.MMUserID != "" && m.MMUserID != me.ID {
 		return nil, &toolError{Code: "IDENTITY_CONFLICT", Message: fmt.Sprintf("토큰 소유자(%s)가 매핑된 Mattermost 계정(%s)과 다릅니다", me.Username, m.MMUsername)}
 	}
 	if m == nil || m.MMUserID == "" || m.Status != "ok" {
 		manual := m != nil && m.Method == "manual" && (m.MMUserID == me.ID || m.MMUserID == "" && strings.EqualFold(m.MMUsername, me.Username))
-		if !manual && !strings.EqualFold(me.Username, u.Username) && (u.Email == "" || !strings.EqualFold(me.Email, u.Email)) {
+		emailOK := u.Source == "keycloak" && u.emailVerified() && u.Email != "" && strings.EqualFold(me.Email, u.Email)
+		if !manual && !strings.EqualFold(me.Username, u.Username) && !emailOK {
 			return nil, &toolError{Code: "IDENTITY_CONFLICT", Message: fmt.Sprintf("토큰 소유자(%s)가 로그인 사용자(%s)와 다릅니다. 다른 계정 연결이 필요하면 관리자에게 수동 매핑을 요청하세요", me.Username, u.Username)}
 		}
 		method := "self"

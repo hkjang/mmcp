@@ -131,8 +131,20 @@ type oidcState struct {
 
 const oidcStateCookie = "mmcp_oidc"
 
+// safeNext only allows a same-origin path. Control characters and
+// backslashes are rejected outright: browsers strip tabs/newlines and treat
+// "\" like "/", turning "/\t/evil" into "//evil".
 func safeNext(next string) string {
-	if next == "" || !strings.HasPrefix(next, "/") || strings.HasPrefix(next, "//") || strings.HasPrefix(next, "/\\") || strings.ContainsAny(next, "\r\n") {
+	if next == "" || len(next) > 2048 || next[0] != '/' || strings.ContainsRune(next, '\\') {
+		return "/"
+	}
+	for _, r := range next {
+		if r < 0x20 || r == 0x7f {
+			return "/"
+		}
+	}
+	u, err := url.Parse(next)
+	if err != nil || u.Scheme != "" || u.Host != "" || u.User != nil || strings.HasPrefix(u.Path, "//") {
 		return "/"
 	}
 	return next
@@ -388,6 +400,7 @@ func (s *Server) provisionOIDCUser(ctx context.Context, kc KeycloakSettings, cla
 	}
 	display := koreanName(claims)
 	email := claimString(claims, "email")
+	verified, _ := claims["email_verified"].(bool)
 	roles := mapIdPRoles(kc, keycloakRoles(claims, kc.ClientID))
 
 	u, err := s.userBySub(ctx, sub)
@@ -396,9 +409,9 @@ func (s *Server) provisionOIDCUser(ctx context.Context, kc KeycloakSettings, cla
 			return nil, errors.New("비활성화된 계정입니다")
 		}
 		if kc.SyncRoles {
-			_, err = s.db.Exec(ctx, `UPDATE users SET display_name=COALESCE(NULLIF($2,''),display_name), email=COALESCE(NULLIF($3,''),email), idp_roles=$4, updated_at=now() WHERE id=$1`, u.ID, display, email, roles)
+			_, err = s.db.Exec(ctx, `UPDATE users SET display_name=COALESCE(NULLIF($2,''),display_name), email=COALESCE(NULLIF($3,''),email), email_verified=$5, idp_roles=$4, updated_at=now() WHERE id=$1`, u.ID, display, email, roles, verified)
 		} else {
-			_, err = s.db.Exec(ctx, `UPDATE users SET display_name=COALESCE(NULLIF($2,''),display_name), email=COALESCE(NULLIF($3,''),email), updated_at=now() WHERE id=$1`, u.ID, display, email)
+			_, err = s.db.Exec(ctx, `UPDATE users SET display_name=COALESCE(NULLIF($2,''),display_name), email=COALESCE(NULLIF($3,''),email), email_verified=$4, updated_at=now() WHERE id=$1`, u.ID, display, email, verified)
 		}
 		if err != nil {
 			return nil, err
@@ -416,8 +429,15 @@ func (s *Server) provisionOIDCUser(ctx context.Context, kc KeycloakSettings, cla
 		if existing.Status != "active" {
 			return nil, errors.New("비활성화된 계정입니다")
 		}
-		if _, err := s.db.Exec(ctx, `UPDATE users SET oidc_sub=$2, idp_roles=$3, display_name=COALESCE(NULLIF($4,''),display_name), email=COALESCE(NULLIF($5,''),email), updated_at=now() WHERE id=$1`,
-			existing.ID, sub, roles, display, email); err != nil {
+		// Only SSO-only placeholders (created by an admin without a password
+		// and without admin rights) are linked automatically. Anything else
+		// could hand a local admin account to whoever controls that username
+		// in Keycloak.
+		if existing.HasPassword || existing.IsAdmin() || existing.Username == normalizeUsername(s.cfg.BootstrapAdmin) {
+			return nil, fmt.Errorf("같은 아이디(%s)의 로컬 계정이 있어 자동 연결하지 않았습니다. 관리자에게 계정 연결을 요청하세요", username)
+		}
+		if _, err := s.db.Exec(ctx, `UPDATE users SET oidc_sub=$2, idp_roles=$3, display_name=COALESCE(NULLIF($4,''),display_name), email=COALESCE(NULLIF($5,''),email), email_verified=$6, source='keycloak', updated_at=now() WHERE id=$1`,
+			existing.ID, sub, roles, display, email, verified); err != nil {
 			return nil, err
 		}
 		s.audit(ctx, auditEvent{Category: "auth", Action: "link_keycloak", ActorID: &existing.ID, Actor: existing.Username, Result: "success", Details: map[string]any{"sub": sub}})
@@ -430,8 +450,8 @@ func (s *Server) provisionOIDCUser(ctx context.Context, kc KeycloakSettings, cla
 	if display == "" {
 		display = username
 	}
-	_, err = s.db.Exec(ctx, `INSERT INTO users(id, username, display_name, email, source, oidc_sub, idp_roles) VALUES ($1,$2,$3,$4,'keycloak',$5,$6)`,
-		id, username, display, email, sub, roles)
+	_, err = s.db.Exec(ctx, `INSERT INTO users(id, username, display_name, email, email_verified, source, oidc_sub, idp_roles) VALUES ($1,$2,$3,$4,$5,'keycloak',$6,$7)`,
+		id, username, display, email, verified, sub, roles)
 	if err != nil {
 		return nil, err
 	}
@@ -457,6 +477,10 @@ func (s *Server) verifyKeycloakBearer(ctx context.Context, raw string) (*User, e
 	claims := map[string]any{}
 	if err := tok.Claims(&claims); err != nil {
 		return nil, err
+	}
+	// Keycloak marks access tokens typ=Bearer; an ID token must not work as a bearer credential.
+	if typ, _ := claims["typ"].(string); typ != "" && !strings.EqualFold(typ, "Bearer") {
+		return nil, fmt.Errorf("액세스 토큰이 아닙니다 (typ=%s)", typ)
 	}
 	audiences := kc.JWTAudiences
 	if len(audiences) == 0 {

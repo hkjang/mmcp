@@ -233,6 +233,18 @@ func (tc *toolCtx) lookupToken(ctx context.Context) (string, error) {
 	}
 }
 
+// readToken is used to resolve channels/posts for a send: the user's own
+// credential, or — in bot fallback — the bot's credential (the bot can only
+// see what it is a member of). The service token is never used to read.
+func (tc *toolCtx) readToken(ctx context.Context, sendToken, mode string) string {
+	if mode == "bot" {
+		if t, err := tc.userToken(ctx); err == nil {
+			return t
+		}
+	}
+	return sendToken
+}
+
 // sender picks the credential that will author a post.
 func (tc *toolCtx) sender(ctx context.Context) (token, mode string, err error) {
 	switch tc.st.Mattermost.SendIdentity {
@@ -320,7 +332,11 @@ func (tc *toolCtx) approve(ctx context.Context, a args, preview map[string]any) 
 			return err
 		}
 		tc.details["approval_id"] = id
-		return &toolError{Code: "APPROVAL_REQUIRED", Message: "실행 전에 사용자 확인이 필요합니다. 아래 미리보기를 사용자에게 그대로 보여 주고, 사용자가 명시적으로 승인한 경우에만 같은 인자에 confirm_token을 추가하여 다시 호출하세요. 사용자가 거절하면 호출하지 마세요.",
+		msg := "실행 전에 사용자 확인이 필요합니다. 아래 미리보기를 사용자에게 그대로 보여 주고, 사용자가 명시적으로 승인한 경우에만 같은 인자에 confirm_token을 추가하여 다시 호출하세요. 사용자가 거절하면 호출하지 마세요."
+		if tc.st.MCP.ConsoleApproval || tc.def.Destructive {
+			msg = "실행 전에 사용자가 mmcp 콘솔의 '승인 요청' 화면에서 직접 승인해야 합니다. 미리보기를 사용자에게 보여 주고 콘솔에서 승인하도록 안내한 뒤, 승인되면 같은 인자에 confirm_token을 추가해 다시 호출하세요."
+		}
+		return &toolError{Code: "APPROVAL_REQUIRED", Message: msg,
 			Details: map[string]any{"confirm_token": id, "expires_at": exp.UTC().Format(time.RFC3339), "preview": preview}}
 	}
 	var status, storedHash string
@@ -332,7 +348,10 @@ func (tc *toolCtx) approve(ctx context.Context, a args, preview map[string]any) 
 	if err != nil {
 		return err
 	}
+	strict := tc.st.MCP.ConsoleApproval || tc.def.Destructive
 	switch {
+	case strict && status == "pending" && time.Now().Before(exp):
+		return &toolError{Code: "APPROVAL_PENDING", Message: "이 작업은 mmcp 콘솔의 '승인 요청' 화면에서 사용자가 직접 승인해야 실행됩니다. 승인 후 같은 confirm_token으로 다시 호출하세요"}
 	case status == "rejected":
 		return &toolError{Code: "APPROVAL_REJECTED", Message: "사용자가 이 요청을 거절했습니다"}
 	case status == "executed":
@@ -391,7 +410,7 @@ func (s *Server) callTool(ctx context.Context, p *Principal, name string, raw js
 		case "PERMISSION_DENIED", "TOOL_DISABLED", "POLICY_BLOCKED", "RATE_LIMITED", "IDENTITY_CONFLICT", "APPROVAL_REQUIRED", "APPROVAL_REJECTED":
 			result = "denied"
 		}
-		if te.Code == "APPROVAL_REQUIRED" {
+		if te.Code == "APPROVAL_REQUIRED" || te.Code == "APPROVAL_PENDING" {
 			result = "pending"
 		}
 		if te.Code == "INTERNAL" {
@@ -402,7 +421,9 @@ func (s *Server) callTool(ctx context.Context, p *Principal, name string, raw js
 		return mcp.JSONResult(map[string]any{"error": te}, true)
 	}
 	if d == nil {
-		return fail(&toolError{Code: "TOOL_NOT_FOUND", Message: "알 수 없는 도구입니다: " + name})
+		details["requested_tool"] = truncateStr(name, 64)
+		name = "(unknown_tool)"
+		return fail(&toolError{Code: "TOOL_NOT_FOUND", Message: "알 수 없는 도구입니다: " + truncateStr(fmt.Sprint(details["requested_tool"]), 64)})
 	}
 	var a args
 	if len(raw) > 0 && string(raw) != "null" {
