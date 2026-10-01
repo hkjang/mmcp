@@ -117,6 +117,9 @@ func (s *Server) Handler() http.Handler {
 		r.Post("/token", s.handleOAuthToken)
 		r.Post("/revoke", s.handleOAuthRevoke)
 		r.Options("/*", func(w http.ResponseWriter, r *http.Request) {})
+		if s.ui != nil {
+			r.Get("/consent", s.ui.ServeHTTP) // SPA consent screen
+		}
 	})
 
 	r.Route("/mcp", func(r chi.Router) {
@@ -140,10 +143,10 @@ func (s *Server) Handler() http.Handler {
 		r.Get("/auth/config", s.handleAuthConfig)
 		r.Post("/auth/login", s.handleLogin)
 		r.Post("/auth/logout", s.handleLogout)
+		r.Get("/auth/me", s.handleMe)
 
 		r.Group(func(r chi.Router) {
 			r.Use(s.requireSession)
-			r.Get("/auth/me", s.handleMe)
 			r.Get("/oauth/requests/{id}", s.handleOAuthRequestInfo)
 			r.Post("/oauth/requests/{id}", s.handleOAuthConsent)
 			s.mountPersonal(r)

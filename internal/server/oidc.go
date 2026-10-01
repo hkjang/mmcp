@@ -354,6 +354,16 @@ func mapIdPRoles(kc KeycloakSettings, kcRoles []string) []string {
 	return out
 }
 
+// koreanName prefers family+given without a space for Hangul names
+// ("장형국") over the "given family" order Keycloak puts in "name".
+func koreanName(claims map[string]any) string {
+	given, family := claimString(claims, "given_name"), claimString(claims, "family_name")
+	if given != "" && family != "" && []rune(family)[0] >= 0xAC00 && []rune(family)[0] <= 0xD7A3 {
+		return family + given
+	}
+	return claimString(claims, "name")
+}
+
 func usernameFromClaims(kc KeycloakSettings, claims map[string]any) string {
 	username := normalizeUsername(claimString(claims, kc.UsernameClaim))
 	if username == "" && kc.EmailFallback {
@@ -376,7 +386,7 @@ func (s *Server) provisionOIDCUser(ctx context.Context, kc KeycloakSettings, cla
 	if username == "" || !validUsername(username) {
 		return nil, fmt.Errorf("사용자 이름 클레임(%s)이 없거나 형식이 올바르지 않습니다", kc.UsernameClaim)
 	}
-	display := claimString(claims, "name")
+	display := koreanName(claims)
 	email := claimString(claims, "email")
 	roles := mapIdPRoles(kc, keycloakRoles(claims, kc.ClientID))
 

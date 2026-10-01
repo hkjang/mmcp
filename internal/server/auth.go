@@ -215,8 +215,15 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "redirect": redirect})
 }
 
+// handleMe answers 200 either way so the login page can probe the session
+// without a 401 showing up as a browser console error.
 func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, s.meResponse(r.Context(), principalFrom(r.Context()).User))
+	p, err := s.sessionPrincipal(r)
+	if err != nil {
+		writeJSON(w, http.StatusOK, map[string]any{"user": nil, "is_admin": false, "version": buildinfo.Get()})
+		return
+	}
+	writeJSON(w, http.StatusOK, s.meResponse(r.Context(), p.User))
 }
 
 func (s *Server) meResponse(ctx context.Context, u *User) map[string]any {

@@ -270,7 +270,12 @@ func (c *Client) ServerVersion(ctx context.Context) string {
 		return ""
 	}
 	resp.Body.Close()
-	return resp.Header.Get("X-Version-Id")
+	// X-Version-Id is "11.11.1.<build>.<hash>.<flag>"; the first three parts are the release
+	v := strings.Split(resp.Header.Get("X-Version-Id"), ".")
+	if len(v) > 3 {
+		v = v[:3]
+	}
+	return strings.Join(v, ".")
 }
 
 // ---- users ----
