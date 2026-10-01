@@ -54,7 +54,7 @@ jobs:
         working-directory: web
         run: |
           npm ci --no-audit --no-fund
-          node node_modules/vitest/vitest.mjs run
+          npm test --silent
           node node_modules/typescript/bin/tsc -b
           node node_modules/vite/bin/vite.js build
       - name: Docker build
