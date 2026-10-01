@@ -233,6 +233,13 @@ func (s *Server) setMappingStatus(ctx context.Context, id uuid.UUID, status, las
 // resolveIdentity returns a verified mapping for the user, discovering it via
 // username on first use. force skips the verification cache.
 func (s *Server) resolveIdentity(ctx context.Context, u *User, force bool) (*Mapping, error) {
+	return s.resolveIdentityOpt(ctx, u, force, false)
+}
+
+// resolveIdentityOpt: allowRelink lets an administrator's explicit re-check
+// link the user to a different Mattermost account than the one previously
+// recorded. Automatic paths never do that.
+func (s *Server) resolveIdentityOpt(ctx context.Context, u *User, force, allowRelink bool) (*Mapping, error) {
 	c, ms, err := s.mm.get(ctx)
 	if err != nil {
 		return nil, err
@@ -259,7 +266,7 @@ func (s *Server) resolveIdentity(ctx context.Context, u *User, force bool) (*Map
 			}
 		}
 	}
-	return s.discoverMapping(ctx, c, ms, u, m)
+	return s.discoverMapping(ctx, c, ms, u, m, allowRelink)
 }
 
 func notMappedError(m *Mapping) error {
@@ -270,7 +277,7 @@ func notMappedError(m *Mapping) error {
 	return &toolError{Code: "IDENTITY_NOT_MAPPED", Message: msg + ". 개인 페이지에서 Mattermost 토큰을 등록하거나 관리자에게 수동 매핑을 요청하세요"}
 }
 
-func (s *Server) discoverMapping(ctx context.Context, c *mattermost.Client, ms MattermostSettings, u *User, existing *Mapping) (*Mapping, error) {
+func (s *Server) discoverMapping(ctx context.Context, c *mattermost.Client, ms MattermostSettings, u *User, existing *Mapping, allowRelink bool) (*Mapping, error) {
 	if ms.ServiceToken == "" {
 		if existing == nil {
 			_, _ = s.upsertMapping(ctx, u, nil, "auto", "pending", "서비스 토큰이 없어 자동 매핑을 할 수 없습니다")
@@ -297,6 +304,14 @@ func (s *Server) discoverMapping(ctx context.Context, c *mattermost.Client, ms M
 	if mmUser.DeleteAt > 0 || mmUser.IsBot {
 		_, _ = s.upsertMapping(ctx, u, nil, methodOf(existing), "not_found", "Mattermost 계정이 비활성화되었거나 봇 계정입니다")
 		return nil, &toolError{Code: "IDENTITY_NOT_MAPPED", Message: "Mattermost 계정이 비활성화되었거나 봇 계정입니다"}
+	}
+	if existing != nil && existing.MMUserID != "" && existing.MMUserID != mmUser.ID {
+		// The username now belongs to a different account than the one this
+		// user was linked to (deactivated and re-created, or renamed onto).
+		if !allowRelink {
+			return s.flagConflict(ctx, u, existing, fmt.Sprintf("username '%s' 이(가) 이전에 연결된 계정(ID %s)이 아닌 다른 계정(ID %s)을 가리킵니다", key, existing.MMUserID, mmUser.ID))
+		}
+		_ = s.clearUserToken(ctx, existing) // the old credential belongs to the old account
 	}
 	m, err := s.upsertMapping(ctx, u, mmUser, methodOf(existing), "ok", "")
 	if err != nil {
@@ -471,7 +486,7 @@ func (s *Server) registerUserToken(ctx context.Context, u *User, token string) (
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return nil, err
 	}
-	if m != nil && m.MMUserID != "" && (m.Status == "ok" || m.Method == "manual") && m.MMUserID != me.ID {
+	if m != nil && m.MMUserID != "" && m.MMUserID != me.ID {
 		return nil, &toolError{Code: "IDENTITY_CONFLICT", Message: fmt.Sprintf("토큰 소유자(%s)가 매핑된 Mattermost 계정(%s)과 다릅니다", me.Username, m.MMUsername)}
 	}
 	if m == nil || m.MMUserID == "" || m.Status != "ok" {

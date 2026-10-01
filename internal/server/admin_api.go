@@ -909,7 +909,7 @@ func (s *Server) adminVerifyMapping(w http.ResponseWriter, r *http.Request) {
 		// admin explicitly asked to re-check: allow rediscovery
 		s.setMappingStatus(ctx, m.ID, "pending", "")
 	}
-	_, err := s.resolveIdentity(ctx, u, true)
+	_, err := s.resolveIdentityOpt(ctx, u, true, true)
 	m2, _ := s.mappingByID(ctx, m.ID)
 	res := map[string]any{"mapping": m2}
 	if err != nil {

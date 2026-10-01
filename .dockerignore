@@ -1,0 +1,12 @@
+.git
+.github
+release
+docs
+web/node_modules
+web/dist
+internal/ui/dist
+web/playwright-report
+web/test-results
+*.log
+.env*
+scripts/dev
