@@ -117,7 +117,7 @@ flowchart LR
 | 컨테이너 런타임 | Docker + Docker Compose |
 | 데이터베이스 | PostgreSQL (별도 준비. `compose.offline.yml`에는 PostgreSQL 서비스가 포함되어 있지 않습니다) |
 | 네트워크 | mmcp → PostgreSQL, Keycloak, Mattermost 접근 가능 / 사용자·MCP 클라이언트 → mmcp `8080` 접근 가능 |
-| 릴리스 파일 | `mmcp-v1.0.0.tar.gz`, `mmcp-v1.0.0.tar.gz.sha256` ([GitHub Releases](https://github.com/hkjang/mmcp/releases)에서 받아 반입) |
+| 릴리스 파일 | `mmcp-v1.0.0.tar.gz`, `릴리스 노트의 SHA-256 값` ([GitHub Releases](https://github.com/hkjang/mmcp/releases)에서 받아 반입) |
 
 이미지 특성(mmcp v1.0.0):
 
@@ -129,8 +129,8 @@ flowchart LR
 ### 2.2 이미지 반입과 검증
 
 ```bash
-# 무결성 확인 (같은 디렉터리에 .sha256 파일이 있어야 합니다)
-sha256sum -c mmcp-v1.0.0.tar.gz.sha256
+# 무결성 확인 (GitHub 릴리스 노트에 적힌 SHA-256 값과 같아야 합니다)
+sha256sum mmcp-v1.0.0.tar.gz   # 릴리스 노트의 SHA-256 값과 비교
 
 # 이미지 로드 → "Loaded image: mmcp:v1.0.0"
 docker load -i mmcp-v1.0.0.tar.gz
@@ -742,7 +742,7 @@ pg_restore -d "$POSTGRES_DSN" --clean --if-exists mmcp-YYYYMMDD.dump
 ### 15.3 업그레이드
 
 1. 설정 내보내기와 DB 덤프를 받습니다.
-2. 새 릴리스 아카이브를 반입해 `sha256sum -c`로 확인하고 `docker load` 합니다.
+2. 새 릴리스 아카이브를 반입해 `sha256sum` 값을 릴리스 노트와 비교하고 `docker load` 합니다.
 3. `compose.offline.yml`의 `image:` 태그(현재 `mmcp:v1.0.0`)를 새 태그로 바꿉니다.
 4. `docker compose -f compose.offline.yml up -d` — 시작 시 DB 마이그레이션이 자동 적용되며 로그에 `migrations applied`가 남습니다.
 5. 시스템 정보 화면에서 버전(현재 v1.0.0에서 바뀌었는지)과 마이그레이션을 확인합니다.

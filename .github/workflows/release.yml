@@ -33,4 +33,4 @@ jobs:
         run: |
           tag="${{ inputs.version_tag }}"
           gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --title "mmcp $tag" --generate-notes
-          gh release upload "$tag" "release/mmcp-$tag.tar.gz" "release/mmcp-$tag.tar.gz.sha256" --clobber
+          gh release upload "$tag" "release/mmcp-$tag.tar.gz" --clobber

@@ -187,7 +187,7 @@
 </tr>
 <tr>
 <td>릴리스 파일</td>
-<td><code>mmcp-v1.0.0.tar.gz</code>, <code>mmcp-v1.0.0.tar.gz.sha256</code> (<a href="https://github.com/hkjang/mmcp/releases">GitHub Releases</a>에서 받아 반입)</td>
+<td><code>mmcp-v1.0.0.tar.gz</code>, <code>릴리스 노트의 SHA-256 값</code> (<a href="https://github.com/hkjang/mmcp/releases">GitHub Releases</a>에서 받아 반입)</td>
 </tr>
 </tbody></table>
 <p>이미지 특성(mmcp v1.0.0):</p>
@@ -198,8 +198,8 @@
 <li>시작 시 DB 마이그레이션을 자동 적용</li>
 </ul>
 <h3 id="22-이미지-반입과-검증"><a class="anchor" href="#22-이미지-반입과-검증" aria-hidden="true">#</a>2.2 이미지 반입과 검증</h3>
-<pre class="code"><code># 무결성 확인 (같은 디렉터리에 .sha256 파일이 있어야 합니다)
-sha256sum -c mmcp-v1.0.0.tar.gz.sha256
+<pre class="code"><code># 무결성 확인 (GitHub 릴리스 노트에 적힌 SHA-256 값과 같아야 합니다)
+sha256sum mmcp-v1.0.0.tar.gz   # 릴리스 노트의 SHA-256 값과 비교
 
 # 이미지 로드 → "Loaded image: mmcp:v1.0.0"
 docker load -i mmcp-v1.0.0.tar.gz
@@ -1703,7 +1703,7 @@ pg_restore -d "$POSTGRES_DSN" --clean --if-exists mmcp-YYYYMMDD.dump</code></pre
 <h3 id="153-업그레이드"><a class="anchor" href="#153-업그레이드" aria-hidden="true">#</a>15.3 업그레이드</h3>
 <ol>
 <li>설정 내보내기와 DB 덤프를 받습니다.</li>
-<li>새 릴리스 아카이브를 반입해 <code>sha256sum -c</code>로 확인하고 <code>docker load</code> 합니다.</li>
+<li>새 릴리스 아카이브를 반입해 <code>sha256sum</code> 값을 릴리스 노트와 비교하고 <code>docker load</code> 합니다.</li>
 <li><code>compose.offline.yml</code>의 <code>image:</code> 태그(현재 <code>mmcp:v1.0.0</code>)를 새 태그로 바꿉니다.</li>
 <li><code>docker compose -f compose.offline.yml up -d</code> — 시작 시 DB 마이그레이션이 자동 적용되며 로그에 <code>migrations applied</code>가 남습니다.</li>
 <li>시스템 정보 화면에서 버전(현재 v1.0.0에서 바뀌었는지)과 마이그레이션을 확인합니다.</li>

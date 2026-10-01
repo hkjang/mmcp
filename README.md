@@ -42,7 +42,7 @@ Keycloak 액세스 토큰을 Mattermost REST API에 그대로 넘길 수는 없�
 
 ```bash
 # 인터넷이 되는 곳에서 릴리스 파일을 받아 반입
-sha256sum -c mmcp-v1.0.0.tar.gz.sha256
+sha256sum mmcp-v1.0.0.tar.gz   # 릴리스 노트의 SHA-256 값과 비교
 docker load -i mmcp-v1.0.0.tar.gz            # → mmcp:v1.0.0
 
 cat > .env <<'EOF'

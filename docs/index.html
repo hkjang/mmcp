@@ -79,7 +79,7 @@
         "name": "mmcp를 오프라인 사내망에 설치하는 방법",
         "totalTime": "PT10M",
         "step": [
-          { "@type": "HowToStep", "position": 1, "name": "이미지 반입", "text": "GitHub Releases에서 mmcp-v1.0.0.tar.gz와 SHA256 파일을 받아 사내망으로 옮기고 sha256sum -c로 검증한 뒤 docker load -i mmcp-v1.0.0.tar.gz를 실행합니다." },
+          { "@type": "HowToStep", "position": 1, "name": "이미지 반입", "text": "GitHub Releases에서 mmcp-v1.0.0.tar.gz를 받아 사내망으로 옮기고 sha256sum 결과를 릴리스 노트의 SHA-256 값과 비교한 뒤 docker load -i mmcp-v1.0.0.tar.gz를 실행합니다." },
           { "@type": "HowToStep", "position": 2, "name": "환경변수 4개 지정", "text": "POSTGRES_DSN, BOOTSTRAP_ADMIN, BOOTSTRAP_ADMIN_PASSWORD, ENCRYPTION_KEY를 .env에 적습니다. ENCRYPTION_KEY는 docker run --rm mmcp:v1.0.0 gen-key로 만듭니다." },
           { "@type": "HowToStep", "position": 3, "name": "실행", "text": "docker compose -f compose.offline.yml up -d로 실행하고 http://호스트:8080 에 부트스트랩 관리자로 로그인합니다." },
           { "@type": "HowToStep", "position": 4, "name": "연동 설정", "text": "관리 콘솔에서 Public URL, Keycloak(Issuer, Client ID/Secret), Mattermost(URL, 서비스 토큰, 발신 계정)를 설정하고 연결 테스트를 실행합니다." },
@@ -233,7 +233,7 @@
         </div>
         <div>
 <pre class="code"><code><span class="c"># 1) 검증 후 로드</span>
-sha256sum -c mmcp-v1.0.0.tar.gz.sha256
+sha256sum mmcp-v1.0.0.tar.gz   # 릴리스 노트의 SHA-256 값과 비교
 docker load -i mmcp-v1.0.0.tar.gz
 
 <span class="c"># 2) 환경변수는 이 4개가 전부</span>
