@@ -2,13 +2,13 @@ package server
 
 import (
 	"context"
-	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"slices"
@@ -499,27 +499,41 @@ func (s *Server) verifyKeycloakBearer(ctx context.Context, raw string) (*User, e
 	return s.provisionOIDCUser(ctx, kc, claims)
 }
 
-// testKeycloak performs discovery and a JWKS fetch for the settings screen.
-func (s *Server) testKeycloak(ctx context.Context) map[string]any {
+// keycloakURIs are the exact URIs mmcp sends to Keycloak for this request's
+// public base; they must be registered on the Keycloak client.
+func keycloakURIs(base string) (callback, postLogout string) {
+	return base + "/auth/oidc/callback", base + "/login?logged_out=1"
+}
+
+// testKeycloak performs discovery and a JWKS fetch, and asks Keycloak whether
+// it accepts mmcp's redirect_uri and post_logout_redirect_uri — the usual
+// cause of "Invalid parameter: redirect_uri".
+func (s *Server) testKeycloak(ctx context.Context, base string) map[string]any {
 	start := time.Now()
+	callback, postLogout := keycloakURIs(base)
+	uris := map[string]any{"redirect_uri": callback, "post_logout_redirect_uri": postLogout, "public_base": base}
 	p, client, kc, err := s.oidc.get(ctx)
 	if err != nil {
-		return map[string]any{"ok": false, "message": err.Error()}
+		return map[string]any{"ok": false, "message": err.Error(), "uris": uris}
 	}
 	var meta struct {
 		JWKS          string   `json:"jwks_uri"`
 		Authorization string   `json:"authorization_endpoint"`
 		Token         string   `json:"token_endpoint"`
 		EndSession    string   `json:"end_session_endpoint"`
-		Introspection string   `json:"introspection_endpoint"`
 		Registration  string   `json:"registration_endpoint"`
 		PKCE          []string `json:"code_challenge_methods_supported"`
 	}
 	_ = p.Claims(&meta)
+	checks := []map[string]any{}
+	add := func(name string, ok bool, msg string) {
+		checks = append(checks, map[string]any{"name": name, "ok": ok, "message": msg})
+	}
+
+	keys := 0
 	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, meta.JWKS, nil)
 	resp, err := client.Do(req)
 	jwksOK := err == nil && resp.StatusCode == 200
-	keys := 0
 	if resp != nil {
 		var jw struct {
 			Keys []json.RawMessage `json:"keys"`
@@ -528,9 +542,58 @@ func (s *Server) testKeycloak(ctx context.Context) map[string]any {
 		resp.Body.Close()
 		keys = len(jw.Keys)
 	}
-	fp := sha256.Sum256([]byte(kc.IssuerURL))
-	return map[string]any{"ok": jwksOK, "message": map[bool]string{true: "Discovery 및 JWKS 확인 완료", false: "JWKS를 가져오지 못했습니다"}[jwksOK],
+	add("discovery", true, "Discovery 문서 확인: "+kc.IssuerURL)
+	add("jwks", jwksOK && keys > 0, fmt.Sprintf("JWKS 서명 키 %d개", keys))
+
+	// Probe the authorization endpoint exactly as a login would.
+	noFollow := *client
+	noFollow.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+	probe := func(endpoint string, q url.Values) (int, string) {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint+"?"+q.Encode(), nil)
+		if err != nil {
+			return 0, err.Error()
+		}
+		resp, err := noFollow.Do(req)
+		if err != nil {
+			return 0, err.Error()
+		}
+		defer resp.Body.Close()
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 64<<10))
+		return resp.StatusCode, string(body)
+	}
+	q := url.Values{"client_id": {kc.ClientID}, "redirect_uri": {callback}, "response_type": {"code"}, "scope": {"openid"},
+		"state": {"mmcp-probe"}, "code_challenge": {"E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"}, "code_challenge_method": {"S256"}}
+	code, body := probe(meta.Authorization, q)
+	switch {
+	case code >= 200 && code < 400 && !strings.Contains(body, "Invalid parameter"):
+		add("redirect_uri", true, "Keycloak이 redirect_uri를 허용합니다: "+callback)
+	case strings.Contains(body, "redirect_uri"):
+		add("redirect_uri", false, "Keycloak이 redirect_uri를 거부합니다. Keycloak 클라이언트의 Valid redirect URIs에 \""+callback+"\" (또는 \""+base+"/*\")를 추가하세요")
+	case strings.Contains(strings.ToLower(body), "client not found"):
+		add("redirect_uri", false, "Keycloak에 Client ID \""+kc.ClientID+"\"가 없습니다")
+	default:
+		add("redirect_uri", false, fmt.Sprintf("인가 엔드포인트 응답을 확인할 수 없습니다 (HTTP %d)", code))
+	}
+	if meta.EndSession != "" && kc.EndSessionOnOut {
+		code, body := probe(meta.EndSession, url.Values{"client_id": {kc.ClientID}, "post_logout_redirect_uri": {postLogout}})
+		if code >= 200 && code < 400 && !strings.Contains(strings.ToLower(body), "invalid redirect") && !strings.Contains(body, "Invalid parameter") {
+			add("post_logout_redirect_uri", true, "로그아웃 후 돌아올 주소를 허용합니다: "+postLogout)
+		} else {
+			add("post_logout_redirect_uri", false, "Keycloak이 로그아웃 후 주소를 거부합니다. Valid post logout redirect URIs에 \""+postLogout+"\" (또는 \"+\")를 추가하거나, '로그아웃 시 Keycloak 세션도 종료'를 끄세요")
+		}
+	}
+	ok := true
+	for _, c := range checks {
+		if c["ok"] != true {
+			ok = false
+		}
+	}
+	msg := "Discovery, JWKS, redirect URI 모두 정상"
+	if !ok {
+		msg = "확인이 필요한 항목이 있습니다"
+	}
+	return map[string]any{"ok": ok, "message": msg, "checks": checks, "uris": uris,
 		"latency_ms": time.Since(start).Milliseconds(), "issuer": kc.IssuerURL, "jwks_uri": meta.JWKS, "jwks_keys": keys,
 		"authorization_endpoint": meta.Authorization, "token_endpoint": meta.Token, "end_session_endpoint": meta.EndSession,
-		"registration_endpoint": meta.Registration, "pkce_methods": meta.PKCE, "issuer_fingerprint": fmt.Sprintf("%x", fp[:6])}
+		"registration_endpoint": meta.Registration, "pkce_methods": meta.PKCE}
 }

@@ -69,6 +69,22 @@ func oauthError(w http.ResponseWriter, status int, code, desc string) {
 	writeJSON(w, status, map[string]string{"error": code, "error_description": desc})
 }
 
+// resourceMatches accepts this server's MCP resource (RFC 8707) in the forms
+// clients send: with or without the /mcp path or a trailing slash. Scheme is
+// not compared because TLS is often terminated in front of mmcp.
+func (s *Server) resourceMatches(r *http.Request, res string) bool {
+	want, err1 := url.Parse(s.publicBase(r))
+	got, err2 := url.Parse(res)
+	if err1 != nil || err2 != nil || got.Host == "" {
+		return false
+	}
+	if !strings.EqualFold(got.Host, want.Host) {
+		return false
+	}
+	p := strings.TrimSuffix(strings.TrimPrefix(got.Path, strings.TrimSuffix(want.Path, "/")), "/")
+	return p == "" || p == "/mcp"
+}
+
 func validRedirectURI(raw string) bool {
 	if raw == "" || len(raw) > 2000 || strings.ContainsAny(raw, " \r\n#") {
 		return false
@@ -249,7 +265,7 @@ func (s *Server) handleOAuthAuthorize(w http.ResponseWriter, r *http.Request) {
 		fail("invalid_request", "PKCE with code_challenge_method=S256 is required")
 		return
 	}
-	if res := q.Get("resource"); res != "" && strings.TrimRight(res, "/") != s.publicBase(r)+"/mcp" && strings.TrimRight(res, "/") != s.publicBase(r) {
+	if res := q.Get("resource"); res != "" && !s.resourceMatches(r, res) {
 		fail("invalid_target", "resource must be "+s.publicBase(r)+"/mcp")
 		return
 	}

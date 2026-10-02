@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/hkjang/mmcp/releases/tag/v1.0.0"><img alt="release" src="https://img.shields.io/badge/release-v1.0.0-2563eb"></a>
+  <a href="https://github.com/hkjang/mmcp/releases/tag/v1.0.1"><img alt="release" src="https://img.shields.io/badge/release-v1.0.1-2563eb"></a>
   <img alt="go" src="https://img.shields.io/badge/Go-1.26-00ADD8">
   <img alt="react" src="https://img.shields.io/badge/React-19%20%2B%20Ant%20Design%206-61dafb">
   <img alt="mcp" src="https://img.shields.io/badge/MCP-2025--11--25-7c3aed">
@@ -42,14 +42,14 @@ Keycloak 액세스 토큰을 Mattermost REST API에 그대로 넘길 수는 없�
 
 ```bash
 # 인터넷이 되는 곳에서 릴리스 파일을 받아 반입
-sha256sum mmcp-v1.0.0.tar.gz   # 릴리스 노트의 SHA-256 값과 비교
-docker load -i mmcp-v1.0.0.tar.gz            # → mmcp:v1.0.0
+sha256sum mmcp-v1.0.1.tar.gz   # 릴리스 노트의 SHA-256 값과 비교
+docker load -i mmcp-v1.0.1.tar.gz            # → mmcp:v1.0.1
 
 cat > .env <<'EOF'
 POSTGRES_DSN=postgres://mmcp:secret@db:5432/mmcp?sslmode=disable
 BOOTSTRAP_ADMIN=admin
 BOOTSTRAP_ADMIN_PASSWORD=Change-Me-Now-2026!
-ENCRYPTION_KEY=<docker run --rm mmcp:v1.0.0 gen-key 결과>
+ENCRYPTION_KEY=<docker run --rm mmcp:v1.0.1 gen-key 결과>
 EOF
 docker compose -f compose.offline.yml up -d   # http://<host>:8080
 ```
@@ -107,7 +107,7 @@ flowchart LR
 make test                       # Go 단위 테스트 + 프론트엔드 테스트
 TEST_POSTGRES_DSN=postgres://... make test-integration   # PostgreSQL + 가짜 Mattermost 통합 테스트
 make build                      # UI 빌드 → Go 바이너리에 임베드 → bin/mmcp
-make package-offline            # release/mmcp-v1.0.0.tar.gz
+make package-offline            # release/mmcp-v1.0.1.tar.gz
 ```
 
 로컬 E2E 환경(Mattermost preview + Keycloak + 데모 데이터)은 `scripts/dev/`의 스크립트로 만들 수 있습니다.

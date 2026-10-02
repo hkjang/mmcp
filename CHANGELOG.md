@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.0.1 — 2026-10-02
+
+리버스 프록시 뒤 배포에서 Keycloak 로그인과 MCP OAuth가 실패하던 문제를 고쳤습니다.
+
+- **수정**: Public URL이 비어 있을 때 mmcp가 내부 주소(`http://host:8080`)를 Keycloak `redirect_uri`와 MCP OAuth 메타데이터에 사용해 Keycloak이 `Invalid parameter: redirect_uri`로 거부하고, Claude Code·Codex 등 MCP 클라이언트가 OAuth를 진행하지 못하던 문제. 이제 `X-Forwarded-Proto/Host/Port`와 RFC 7239 `Forwarded` 헤더로 외부 주소를 계산합니다 (Public URL이 설정되어 있으면 그 값이 우선).
+- **진단**: Keycloak 연결 테스트가 실제 `redirect_uri`·로그아웃 후 주소를 Keycloak에 보내 확인하고, 미등록이면 등록해야 할 정확한 값을 알려 줍니다. 설정 화면 가이드도 서버가 실제로 쓰는 주소를 표시하고, 대시보드 구성요소 상태에 반영됩니다.
+- **호환성**: OAuth·메타데이터 공개 엔드포인트 CORS 허용(브라우저 기반 MCP 클라이언트), 2025-03-26 기본 경로 `/authorize` `/token` `/register` 별칭, RFC 8707 resource 비교 완화(경로·슬래시·TLS 종단).
+- **검증**: HTTPS·HTTP 리버스 프록시 뒤에서 Claude Code 2.1(`claude mcp login`)과 Codex CLI 0.160(`codex mcp login`)의 실제 OAuth 로그인 → Keycloak SSO → 동의 → 도구 호출까지 확인.
+
 ## v1.0.0 — 2026-10-01
 
 첫 정식 릴리스.

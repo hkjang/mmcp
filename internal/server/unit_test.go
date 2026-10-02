@@ -1,6 +1,8 @@
 package server
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -201,5 +203,32 @@ func TestRoleImplication(t *testing.T) {
 	}
 	if !(&User{Roles: []string{RoleMCPAdmin}}).HasAnyRole([]string{RoleChannelAdmin}) {
 		t.Fatal("mcp-admin passes every check")
+	}
+}
+
+func TestForwardedOrigin(t *testing.T) {
+	mk := func(h map[string]string) *http.Request {
+		r := httptest.NewRequest("GET", "http://10.0.0.5:8080/auth/oidc/login", nil)
+		for k, v := range h {
+			r.Header.Set(k, v)
+		}
+		return r
+	}
+	cases := []struct {
+		h            map[string]string
+		scheme, host string
+	}{
+		{nil, "http", "10.0.0.5:8080"},
+		{map[string]string{"X-Forwarded-Proto": "https", "X-Forwarded-Host": "mcp.example.com"}, "https", "mcp.example.com"},
+		{map[string]string{"X-Forwarded-Proto": "https, http", "X-Forwarded-Host": "mcp.example.com:8443, inner"}, "https", "mcp.example.com:8443"},
+		{map[string]string{"X-Forwarded-Proto": "https", "X-Forwarded-Host": "mcp.example.com", "X-Forwarded-Port": "8443"}, "https", "mcp.example.com:8443"},
+		{map[string]string{"Forwarded": `for=1.2.3.4;proto=https;host="chat.example.com"`}, "https", "chat.example.com"},
+		{map[string]string{"X-Forwarded-Host": "evil.com/path", "X-Forwarded-Proto": "javascript"}, "http", "10.0.0.5:8080"},
+	}
+	for i, c := range cases {
+		s, h := forwardedOrigin(mk(c.h))
+		if s != c.scheme || h != c.host {
+			t.Errorf("case %d: got %s://%s want %s://%s", i, s, h, c.scheme, c.host)
+		}
 	}
 }

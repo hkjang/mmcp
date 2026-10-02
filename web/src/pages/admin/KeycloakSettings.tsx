@@ -5,9 +5,10 @@ import { useMutation } from '@tanstack/react-query'
 import { post, errorMessage } from '../../api/client'
 import { PageHeader } from '../../components/PageHeader'
 import { CodeBlock } from '../../components/common'
-import { TagsInput, useSectionForm } from './settingsHooks'
+import { TagsInput, useSectionForm, useSettings } from './settingsHooks'
+import { CheckCircleFilled, CloseCircleFilled } from '@ant-design/icons'
 
-interface TestResult { ok: boolean; message: string; latency_ms?: number; jwks_keys?: number; authorization_endpoint?: string; token_endpoint?: string; end_session_endpoint?: string; pkce_methods?: string[]; jwks_uri?: string }
+interface TestResult { ok: boolean; message: string; checks?: { name: string; ok: boolean; message: string }[]; uris?: { redirect_uri: string; post_logout_redirect_uri: string }; latency_ms?: number; jwks_keys?: number; authorization_endpoint?: string; token_endpoint?: string; end_session_endpoint?: string; pkce_methods?: string[]; jwks_uri?: string }
 
 export default function KeycloakSettings() {
   const [form] = Form.useForm()
@@ -16,7 +17,10 @@ export default function KeycloakSettings() {
   const [result, setResult] = useState<TestResult | null>(null)
   const test = useMutation({ mutationFn: () => post<TestResult>('/admin/settings/keycloak/test'), onSuccess: setResult, onError: (e) => message.error(errorMessage(e)) })
   const enabled = Form.useWatch('enabled', form)
-  const base = window.location.origin
+  const { data: all } = useSettings()
+  const callback = all?.keycloak_redirect_uri ?? `${window.location.origin}/auth/oidc/callback`
+  const postLogout = all?.keycloak_post_logout_uri ?? `${window.location.origin}/login?logged_out=1`
+  const serverBase = all?.public_base ?? window.location.origin
   if (isLoading) return <Skeleton active />
   return (
     <>
@@ -88,6 +92,12 @@ export default function KeycloakSettings() {
           {result && (
             <Card title="연결 테스트" style={{ marginBottom: 16 }}>
               <Alert type={result.ok ? 'success' : 'error'} showIcon title={result.message} style={{ marginBottom: 12 }} />
+              {result.checks?.map((c) => (
+                  <div key={c.name} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 8, fontSize: 13 }}>
+                    {c.ok ? <CheckCircleFilled style={{ color: '#16a34a', marginTop: 3 }} /> : <CloseCircleFilled style={{ color: '#dc2626', marginTop: 3 }} />}
+                    <span style={{ wordBreak: 'break-all' }}>{c.message}</span>
+                  </div>
+                ))}
               {result.ok && (
                 <Descriptions size="small" column={1} items={[
 { label: "응답", children: <>{result.latency_ms}ms</> },
@@ -99,7 +109,14 @@ export default function KeycloakSettings() {
             </Card>
           )}
           <Card title="Keycloak 클라이언트 설정 가이드">
-            <Typography.Paragraph>Realm에 OIDC 클라이언트를 만들고 아래처럼 설정합니다.</Typography.Paragraph>
+            <Typography.Paragraph>Realm에 OIDC 클라이언트를 만들고 아래처럼 설정합니다. 아래 주소는 mmcp가 실제로 Keycloak에 보내는 값입니다.</Typography.Paragraph>
+            {!all?.settings.general.public_url && (
+              <Alert type="warning" showIcon style={{ marginBottom: 12 }} title="Public URL이 비어 있습니다"
+                description={<>현재 요청 기준으로 <code>{serverBase}</code> 를 사용하고 있습니다. 리버스 프록시 뒤라면 <b>일반 설정 &gt; Public URL</b>에 사용자가 접속하는 주소(https://…)를 지정해야 Keycloak 'Invalid parameter: redirect_uri' 오류와 MCP OAuth 실패를 막을 수 있습니다.</>} />
+            )}
+            {all?.settings.general.public_url && serverBase !== window.location.origin && (
+              <Alert type="info" showIcon style={{ marginBottom: 12 }} title={`Public URL(${serverBase})과 지금 접속한 주소(${window.location.origin})가 다릅니다`} description="Keycloak에는 Public URL 기준 주소가 등록되어야 합니다." />
+            )}
             <Descriptions size="small" column={1} bordered items={[
 { label: "Client authentication", children: <>ON (confidential)</> },
 { label: "Standard flow", children: <>ON · PKCE S256</> },
@@ -107,9 +124,9 @@ export default function KeycloakSettings() {
 { label: "Access token 수명", children: <>5~15분</> },
 ]} />
             <Typography.Paragraph style={{ marginTop: 12, marginBottom: 4 }}>Valid redirect URI</Typography.Paragraph>
-            <CodeBlock code={`${base}/auth/oidc/callback`} />
+            <CodeBlock code={callback} />
             <Typography.Paragraph style={{ marginTop: 12, marginBottom: 4 }}>Valid post logout redirect URI</Typography.Paragraph>
-            <CodeBlock code={`${base}/login?logged_out=1`} />
+            <CodeBlock code={postLogout} />
             <Typography.Paragraph style={{ marginTop: 12, marginBottom: 4 }}>권장 Realm 역할</Typography.Paragraph>
             <Space size={[4, 4]} wrap>{['mcp-user', 'mcp-writer', 'mcp-file', 'mcp-channel-admin', 'mcp-admin'].map((r) => <Tag key={r}>{r}</Tag>)}</Space>
             <Alert style={{ marginTop: 12 }} type="info" showIcon title="사일런트 SSO는 브라우저의 최상위 리다이렉트(prompt=none)로 동작하므로 서드파티 쿠키 차단의 영향을 받지 않습니다." />

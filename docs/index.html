@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>mmcp v1.0.0 — Mattermost MCP Gateway | Keycloak SSO · 사용자별 권한 · 오프라인 배포</title>
+  <title>mmcp v1.0.1 — Mattermost MCP Gateway | Keycloak SSO · 사용자별 권한 · 오프라인 배포</title>
   <meta name="description" content="mmcp는 Keycloak으로 로그인한 사용자 본인의 Mattermost 권한으로 Claude Code·Codex·Cursor·사내 AI 포털이 채널 검색, 스레드 요약, 승인 기반 DM 발송을 하도록 해 주는 오프라인 사내망용 MCP 게이트웨이입니다. 환경변수 4개, 단일 Docker 이미지." />
   <meta name="keywords" content="Mattermost MCP, MCP 서버, Model Context Protocol, Keycloak SSO, 사일런트 SSO, Mattermost REST API, Claude Code MCP, Codex MCP, 사내 AI 게이트웨이, 오프라인 배포, OAuth 2.1 PKCE" />
   <meta name="author" content="hkjang" />
@@ -35,14 +35,14 @@
         "@id": "https://hkjang.github.io/mmcp/#app",
         "name": "mmcp",
         "alternateName": "Mattermost MCP Gateway",
-        "softwareVersion": "1.0.0",
+        "softwareVersion": "1.0.1",
         "applicationCategory": "DeveloperApplication",
         "applicationSubCategory": "Model Context Protocol server",
         "operatingSystem": "Linux (Docker, linux/amd64)",
         "description": "Keycloak으로 인증한 사용자 본인의 Mattermost 권한으로 AI 에이전트가 Mattermost를 조회·검색하고 승인 후 메시지와 DM을 보내게 하는 MCP 게이트웨이.",
         "url": "https://hkjang.github.io/mmcp/",
-        "downloadUrl": "https://github.com/hkjang/mmcp/releases/download/v1.0.0/mmcp-v1.0.0.tar.gz",
-        "installUrl": "https://github.com/hkjang/mmcp/releases/tag/v1.0.0",
+        "downloadUrl": "https://github.com/hkjang/mmcp/releases/download/v1.0.1/mmcp-v1.0.1.tar.gz",
+        "installUrl": "https://github.com/hkjang/mmcp/releases/tag/v1.0.1",
         "codeRepository": "https://github.com/hkjang/mmcp",
         "license": "https://opensource.org/licenses/MIT",
         "programmingLanguage": ["Go", "TypeScript"],
@@ -69,7 +69,7 @@
           { "@type": "Question", "name": "공용 서비스 계정 방식과 무엇이 다른가요?", "acceptedAnswer": { "@type": "Answer", "text": "공용 서비스 계정은 사용자가 볼 수 없는 비공개 채널까지 AI가 볼 수 있게 만듭니다. mmcp는 조회를 항상 사용자 본인 자격증명으로 실행하고, 서비스 토큰은 사용자 찾기와 개인 토큰 자동 발급에만 사용합니다." } },
           { "@type": "Question", "name": "사용자 Mattermost 비밀번호가 필요한가요?", "acceptedAnswer": { "@type": "Answer", "text": "필요 없습니다. 관리자가 시스템 관리자 토큰을 설정하면 사용자 명의 개인 액세스 토큰을 자동 발급하고, 그렇지 않으면 사용자가 직접 개인 액세스 토큰을 등록합니다. 봇 발신 모드를 쓰면 사용자 자격증명 없이도 '○○님의 요청'으로 DM을 보낼 수 있습니다." } },
           { "@type": "Question", "name": "AI가 마음대로 메시지를 보내지 않나요?", "acceptedAnswer": { "@type": "Answer", "text": "쓰기 도구는 기본적으로 2단계 승인입니다. 첫 호출은 미리보기와 confirm_token만 돌려주고, 사용자가 동의해야 같은 인자로 다시 호출해 실행됩니다. 인자가 바뀌거나 만료·거절된 토큰으로는 실행되지 않습니다." } },
-          { "@type": "Question", "name": "인터넷이 없는 사내망에서 설치할 수 있나요?", "acceptedAnswer": { "@type": "Answer", "text": "네. 릴리스의 mmcp-v1.0.0.tar.gz를 반입해 docker load로 올리고 POSTGRES_DSN, BOOTSTRAP_ADMIN, BOOTSTRAP_ADMIN_PASSWORD, ENCRYPTION_KEY 네 개의 환경변수만 지정하면 됩니다. 폰트와 UI까지 이미지에 포함되어 외부 CDN을 호출하지 않습니다." } },
+          { "@type": "Question", "name": "인터넷이 없는 사내망에서 설치할 수 있나요?", "acceptedAnswer": { "@type": "Answer", "text": "네. 릴리스의 mmcp-v1.0.1.tar.gz를 반입해 docker load로 올리고 POSTGRES_DSN, BOOTSTRAP_ADMIN, BOOTSTRAP_ADMIN_PASSWORD, ENCRYPTION_KEY 네 개의 환경변수만 지정하면 됩니다. 폰트와 UI까지 이미지에 포함되어 외부 CDN을 호출하지 않습니다." } },
           { "@type": "Question", "name": "Keycloak 사일런트 SSO는 어떻게 동작하나요?", "acceptedAnswer": { "@type": "Answer", "text": "로그인 화면이 prompt=none으로 Keycloak에 리다이렉트합니다. 브라우저에 Keycloak 세션이 있으면 화면 없이 돌아와 로그인되고, mmcp 계정이 없으면 자동 생성되며 mcp-* 역할이 동기화됩니다. 세션이 없으면 로그인 화면이 그대로 표시됩니다." } }
         ]
       },
@@ -79,8 +79,8 @@
         "name": "mmcp를 오프라인 사내망에 설치하는 방법",
         "totalTime": "PT10M",
         "step": [
-          { "@type": "HowToStep", "position": 1, "name": "이미지 반입", "text": "GitHub Releases에서 mmcp-v1.0.0.tar.gz를 받아 사내망으로 옮기고 sha256sum 결과를 릴리스 노트의 SHA-256 값과 비교한 뒤 docker load -i mmcp-v1.0.0.tar.gz를 실행합니다." },
-          { "@type": "HowToStep", "position": 2, "name": "환경변수 4개 지정", "text": "POSTGRES_DSN, BOOTSTRAP_ADMIN, BOOTSTRAP_ADMIN_PASSWORD, ENCRYPTION_KEY를 .env에 적습니다. ENCRYPTION_KEY는 docker run --rm mmcp:v1.0.0 gen-key로 만듭니다." },
+          { "@type": "HowToStep", "position": 1, "name": "이미지 반입", "text": "GitHub Releases에서 mmcp-v1.0.1.tar.gz를 받아 사내망으로 옮기고 sha256sum 결과를 릴리스 노트의 SHA-256 값과 비교한 뒤 docker load -i mmcp-v1.0.1.tar.gz를 실행합니다." },
+          { "@type": "HowToStep", "position": 2, "name": "환경변수 4개 지정", "text": "POSTGRES_DSN, BOOTSTRAP_ADMIN, BOOTSTRAP_ADMIN_PASSWORD, ENCRYPTION_KEY를 .env에 적습니다. ENCRYPTION_KEY는 docker run --rm mmcp:v1.0.1 gen-key로 만듭니다." },
           { "@type": "HowToStep", "position": 3, "name": "실행", "text": "docker compose -f compose.offline.yml up -d로 실행하고 http://호스트:8080 에 부트스트랩 관리자로 로그인합니다." },
           { "@type": "HowToStep", "position": 4, "name": "연동 설정", "text": "관리 콘솔에서 Public URL, Keycloak(Issuer, Client ID/Secret), Mattermost(URL, 서비스 토큰, 발신 계정)를 설정하고 연결 테스트를 실행합니다." },
           { "@type": "HowToStep", "position": 5, "name": "AI 클라이언트 연결", "text": "claude mcp add --transport http mmcp https://호스트/mcp 처럼 MCP 서버를 추가하고 브라우저에서 허용을 누릅니다." }
@@ -113,11 +113,11 @@
     <section class="hero">
       <div class="wrap hero-grid">
         <div>
-          <p class="eyebrow"><span class="preview-pill">v1.0.0</span> 오프라인 사내망용 MCP 게이트웨이</p>
+          <p class="eyebrow"><span class="preview-pill">v1.0.1</span> 오프라인 사내망용 MCP 게이트웨이</p>
           <h1>AI 에이전트에게 Mattermost를,<br /><em>사용자 본인의 권한으로.</em></h1>
           <p class="lead">Keycloak으로 로그인한 그 사람의 Mattermost 권한 그대로 Claude Code·Codex·Cursor·사내 AI 포털이 채널을 검색하고, 스레드를 요약하고, <b>승인 후</b> DM을 보냅니다. 환경변수 4개, 이미지 하나.</p>
           <div class="cta">
-            <a class="btn primary" href="https://github.com/hkjang/mmcp/releases/tag/v1.0.0">mmcp-v1.0.0.tar.gz 다운로드</a>
+            <a class="btn primary" href="https://github.com/hkjang/mmcp/releases/tag/v1.0.1">mmcp-v1.0.1.tar.gz 다운로드</a>
             <a class="btn" href="#install">설치 방법 보기</a>
           </div>
           <ul class="chips" aria-label="핵심 특징">
@@ -223,8 +223,8 @@
         <div>
           <h2>설치 — 오프라인 5단계</h2>
           <ol class="steps">
-            <li><b>반입</b> 릴리스의 <code>mmcp-v1.0.0.tar.gz</code>를 사내망으로 옮기고 검증합니다.</li>
-            <li><b>로드</b> <code>docker load</code>로 <code>mmcp:v1.0.0</code>을 올립니다.</li>
+            <li><b>반입</b> 릴리스의 <code>mmcp-v1.0.1.tar.gz</code>를 사내망으로 옮기고 검증합니다.</li>
+            <li><b>로드</b> <code>docker load</code>로 <code>mmcp:v1.0.1</code>을 올립니다.</li>
             <li><b>환경변수 4개</b> DB 주소, 관리자 계정·비밀번호, 암호화 키.</li>
             <li><b>실행</b> <code>compose.offline.yml</code>로 띄우고 8080 포트에 접속합니다.</li>
             <li><b>연동</b> 콘솔에서 Public URL · Keycloak · Mattermost를 설정합니다.</li>
@@ -233,15 +233,15 @@
         </div>
         <div>
 <pre class="code"><code><span class="c"># 1) 검증 후 로드</span>
-sha256sum mmcp-v1.0.0.tar.gz   # 릴리스 노트의 SHA-256 값과 비교
-docker load -i mmcp-v1.0.0.tar.gz
+sha256sum mmcp-v1.0.1.tar.gz   # 릴리스 노트의 SHA-256 값과 비교
+docker load -i mmcp-v1.0.1.tar.gz
 
 <span class="c"># 2) 환경변수는 이 4개가 전부</span>
 cat &gt; .env &lt;&lt;EOF
 POSTGRES_DSN=postgres://mmcp:secret@db:5432/mmcp
 BOOTSTRAP_ADMIN=admin
 BOOTSTRAP_ADMIN_PASSWORD=Change-Me-Now-2026!
-ENCRYPTION_KEY=$(docker run --rm mmcp:v1.0.0 gen-key)
+ENCRYPTION_KEY=$(docker run --rm mmcp:v1.0.1 gen-key)
 EOF
 
 <span class="c"># 3) 실행</span>
@@ -275,7 +275,7 @@ claude mcp add --transport http mmcp \
         <details><summary>사용자 Mattermost 비밀번호가 필요한가요?</summary><p>필요 없습니다. 시스템 관리자 토큰이 설정되어 있으면 사용자 명의 PAT를 자동 발급하고, 아니면 사용자가 PAT를 직접 등록합니다. 봇 발신 모드에서는 사용자 자격증명 없이도 "○○님의 요청"으로 DM을 보낼 수 있습니다.</p></details>
         <details><summary>AI가 마음대로 메시지를 보내지 않나요?</summary><p>쓰기 도구는 기본적으로 2단계 승인입니다. 첫 호출은 미리보기와 <code>confirm_token</code>만 돌려주고, 사용자가 동의해야 같은 인자로 다시 호출해 실행됩니다. 인자가 바뀌거나 만료·거절·재사용된 토큰으로는 실행되지 않습니다.</p></details>
         <details><summary>Mattermost 계정이 삭제 후 같은 이름으로 다시 만들어지면?</summary><p>mmcp는 username이 아닌 <code>user_id</code>를 신뢰합니다. 같은 username이 다른 계정을 가리키면 <code>IDENTITY_CONFLICT</code>로 자동 차단하고, 관리자가 확인 후 재검증해야만 새 계정과 다시 연결됩니다(이전 자격증명은 폐기).</p></details>
-        <details><summary>인터넷이 없는 사내망에서 설치할 수 있나요?</summary><p>네. <code>mmcp-v1.0.0.tar.gz</code>를 반입해 <code>docker load</code>하고 환경변수 4개만 지정하면 됩니다. UI·폰트까지 이미지에 포함되어 외부 CDN을 호출하지 않습니다.</p></details>
+        <details><summary>인터넷이 없는 사내망에서 설치할 수 있나요?</summary><p>네. <code>mmcp-v1.0.1.tar.gz</code>를 반입해 <code>docker load</code>하고 환경변수 4개만 지정하면 됩니다. UI·폰트까지 이미지에 포함되어 외부 CDN을 호출하지 않습니다.</p></details>
         <details><summary>Keycloak 사일런트 SSO는 어떻게 동작하나요?</summary><p>로그인 화면이 <code>prompt=none</code>으로 Keycloak에 다녀옵니다. Keycloak 세션이 있으면 화면 없이 로그인되고, 계정이 없으면 자동 생성되며 <code>mcp-*</code> 역할이 동기화됩니다. 세션이 없으면 로그인 화면이 그대로 보입니다. 최상위 리다이렉트 방식이라 서드파티 쿠키 차단의 영향을 받지 않습니다.</p></details>
         <details><summary>암호화 키는 어떻게 회전하나요?</summary><p>사용자별 데이터 키는 개인 화면이나 관리 콘솔에서 즉시 회전합니다. 마스터 키는 <code>ENCRYPTION_KEY="새키,이전키"</code>로 재시작 → 콘솔의 "재래핑" → 이전 키 제거 순서로 무중단 회전합니다.</p></details>
       </div>
@@ -286,7 +286,7 @@ claude mcp add --transport http mmcp \
         <h2>지금 사내망에 올려 보세요</h2>
         <p>단일 이미지 · 환경변수 4개 · 10분 설치</p>
         <div class="cta center">
-          <a class="btn primary" href="https://github.com/hkjang/mmcp/releases/tag/v1.0.0">v1.0.0 다운로드</a>
+          <a class="btn primary" href="https://github.com/hkjang/mmcp/releases/tag/v1.0.1">v1.0.1 다운로드</a>
           <a class="btn" href="https://github.com/hkjang/mmcp">소스 보기</a>
         </div>
       </div>
@@ -295,7 +295,7 @@ claude mcp add --transport http mmcp \
 
   <footer class="footer">
     <div class="wrap">
-      <span>mmcp v1.0.0 · MIT License · Version 1.0.0 · Go + React</span>
+      <span>mmcp v1.0.1 · MIT License · Version 1.0.1 · Go + React</span>
       <span><a href="https://github.com/hkjang/mmcp">GitHub</a> · <a href="user-guide.html">사용자 가이드</a> · <a href="admin-guide.html">관리자 가이드</a> · <a href="llms.txt">llms.txt</a></span>
     </div>
   </footer>

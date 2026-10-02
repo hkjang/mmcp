@@ -4,8 +4,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { get, put, errorMessage } from '../../api/client'
 import type { AllSettings } from '../../api/types'
 
+export interface SettingsResponse { settings: AllSettings; roles: string[]; public_base: string; keycloak_redirect_uri: string; keycloak_post_logout_uri: string }
+
 export function useSettings() {
-  return useQuery({ queryKey: ['admin', 'settings'], queryFn: () => get<{ settings: AllSettings; roles: string[] }>('/admin/settings') })
+  return useQuery({ queryKey: ['admin', 'settings'], queryFn: () => get<SettingsResponse>('/admin/settings') })
 }
 
 /** Binds a settings section to a form: loads values once, saves partial updates. */
@@ -20,7 +22,7 @@ export function useSectionForm<K extends keyof AllSettings>(section: K, form: Fo
   const save = useMutation({
     mutationFn: (v: Partial<AllSettings[K]>) => put<{ settings: AllSettings }>(`/admin/settings/${section}`, v),
     onSuccess: (r) => {
-      qc.setQueryData(['admin', 'settings'], (old: { settings: AllSettings; roles: string[] } | undefined) => (old ? { ...old, settings: r.settings } : old))
+      qc.setQueryData(['admin', 'settings'], (old: SettingsResponse | undefined) => (old ? { ...old, settings: r.settings } : old))
       form.setFieldsValue(r.settings[section] as never)
       void qc.invalidateQueries({ queryKey: ['admin', 'dashboard'] })
       message.success('저장했습니다')

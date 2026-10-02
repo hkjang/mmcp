@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -47,14 +48,25 @@ func (s *Server) checkComponents(ctx context.Context, r *http.Request) []compone
 			c.Status, c.Message = "not_configured", "Keycloak 연동이 꺼져 있습니다"
 			return c
 		}
-		res := s.testKeycloak(ctx)
+		res := s.testKeycloak(ctx, s.publicBase(r))
 		c.LatencyMS, _ = res["latency_ms"].(int64)
-		if ok, _ := res["ok"].(bool); ok {
-			c.Status = "up"
-		} else {
-			c.Status = "down"
+		c.Status, c.Message = "up", "Discovery·JWKS·redirect URI 정상"
+		checks, _ := res["checks"].([]map[string]any)
+		if len(checks) == 0 {
+			c.Status, c.Message = "down", fmt.Sprint(res["message"])
 		}
-		c.Message, _ = res["message"].(string)
+		for _, ch := range checks {
+			if ch["ok"] == true {
+				continue
+			}
+			// a missing redirect URI breaks logins but not token validation
+			if ch["name"] == "discovery" || ch["name"] == "jwks" {
+				c.Status = "down"
+			} else if c.Status != "down" {
+				c.Status = "warn"
+			}
+			c.Message = fmt.Sprint(ch["message"])
+		}
 		return c
 	})
 	run(2, func() component {

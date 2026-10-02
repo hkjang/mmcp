@@ -260,7 +260,9 @@ func (s *Server) adminSystem(w http.ResponseWriter, r *http.Request) {
 // ---- settings ----
 
 func (s *Server) adminGetSettings(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"settings": s.settings.Masked(r.Context()), "roles": KnownRoles})
+	cb, pl := keycloakURIs(s.publicBase(r))
+	writeJSON(w, http.StatusOK, map[string]any{"settings": s.settings.Masked(r.Context()), "roles": KnownRoles,
+		"public_base": s.publicBase(r), "keycloak_redirect_uri": cb, "keycloak_post_logout_uri": pl})
 }
 
 func (s *Server) adminPutSettings(w http.ResponseWriter, r *http.Request) {
@@ -284,7 +286,7 @@ func (s *Server) adminPutSettings(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) adminTestKeycloak(w http.ResponseWriter, r *http.Request) {
 	s.oidc.reset()
-	writeJSON(w, http.StatusOK, s.testKeycloak(r.Context()))
+	writeJSON(w, http.StatusOK, s.testKeycloak(r.Context(), s.publicBase(r)))
 }
 
 func (s *Server) adminTestMattermost(w http.ResponseWriter, r *http.Request) {

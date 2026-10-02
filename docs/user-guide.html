@@ -2,25 +2,25 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>사용자 가이드 — mmcp v1.0.0 Mattermost MCP Gateway</title>
+  <title>사용자 가이드 — mmcp v1.0.1 Mattermost MCP Gateway</title>
   <meta name="description" content="mmcp 사용자 가이드: Keycloak SSO 로그인, Mattermost 계정 연결, Claude Code·Codex·Cursor MCP 연결, API 키 회전, 승인 흐름, 도구 목록과 문제 해결." />
   <link rel="canonical" href="https://hkjang.github.io/mmcp/user-guide.html" />
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <meta property="og:title" content="mmcp 사용자 가이드" /><meta property="og:description" content="mmcp 사용자 가이드: Keycloak SSO 로그인, Mattermost 계정 연결, Claude Code·Codex·Cursor MCP 연결, API 키 회전, 승인 흐름, 도구 목록과 문제 해결." />
   <meta property="og:image" content="https://hkjang.github.io/mmcp/og-card.png" /><meta property="og:type" content="article" />
   <link rel="stylesheet" href="styles.css" />
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"mmcp 사용자 가이드","description":"mmcp 사용자 가이드: Keycloak SSO 로그인, Mattermost 계정 연결, Claude Code·Codex·Cursor MCP 연결, API 키 회전, 승인 흐름, 도구 목록과 문제 해결.","inLanguage":"ko","version":"1.0.0","url":"https://hkjang.github.io/mmcp/user-guide.html","about":{"@id":"https://hkjang.github.io/mmcp/#app"},"author":{"@type":"Person","name":"hkjang"}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"mmcp 사용자 가이드","description":"mmcp 사용자 가이드: Keycloak SSO 로그인, Mattermost 계정 연결, Claude Code·Codex·Cursor MCP 연결, API 키 회전, 승인 흐름, 도구 목록과 문제 해결.","inLanguage":"ko","version":"1.0.1","url":"https://hkjang.github.io/mmcp/user-guide.html","about":{"@id":"https://hkjang.github.io/mmcp/#app"},"author":{"@type":"Person","name":"hkjang"}}</script>
 </head>
 <body class="doc">
   <header class="nav"><div class="wrap nav-inner">
-    <a class="brand" href="./"><img src="favicon.svg" width="34" height="34" alt="" /><span><b>mmcp</b><small>사용자 가이드 · v1.0.0</small></span></a>
+    <a class="brand" href="./"><img src="favicon.svg" width="34" height="34" alt="" /><span><b>mmcp</b><small>사용자 가이드 · v1.0.1</small></span></a>
     <nav aria-label="문서"><a href="./">홈</a><a href="user-guide.html">사용자 가이드</a><a href="admin-guide.html">관리자 가이드</a><a class="gh" href="https://github.com/hkjang/mmcp">GitHub</a></nav>
   </div></header>
   <div class="wrap doc-grid">
     <aside class="doc-toc" aria-label="목차"><b>목차</b><a class="d2" href="#목차">목차</a><a class="d2" href="#1-mmcp가-하는-일">1. mmcp가 하는 일</a><a class="d2" href="#2-로그인">2. 로그인</a><a class="d3" href="#keycloak-sso">Keycloak SSO</a><a class="d3" href="#로컬-계정">로컬 계정</a><a class="d3" href="#로그인-오류가-보일-때">로그인 오류가 보일 때</a><a class="d2" href="#3-화면-둘러보기빠른-이동">3. 화면 둘러보기·빠른 이동</a><a class="d3" href="#내-공간-메뉴">내 공간 메뉴</a><a class="d3" href="#빠른-이동과-단축키">빠른 이동과 단축키</a><a class="d3" href="#프로필-메뉴">프로필 메뉴</a><a class="d2" href="#4-mattermost-계정-연결">4. Mattermost 계정 연결</a><a class="d3" href="#방법-1-자동-연결">방법 1. 자동 연결</a><a class="d3" href="#방법-2-내-개인-액세스-토큰-등록">방법 2. 내 개인 액세스 토큰 등록</a><a class="d3" href="#메시지는-누구-명의로-보내지나요">메시지는 누구 명의로 보내지나요?</a><a class="d2" href="#5-ai-클라이언트-연결">5. AI 클라이언트 연결</a><a class="d3" href="#claude-code">Claude Code</a><a class="d3" href="#oauth-동의-화면">OAuth 동의 화면</a><a class="d3" href="#codex-cli">Codex CLI</a><a class="d3" href="#cursor">Cursor</a><a class="d3" href="#vs-code-github-copilot-agent-모드">VS Code (GitHub Copilot Agent 모드)</a><a class="d3" href="#사내-ai-포털--서버-간-연동">사내 AI 포털 · 서버 간 연동</a><a class="d3" href="#연결-후-ai가-쓸-수-있는-것">연결 후 AI가 쓸 수 있는 것</a><a class="d2" href="#6-api-키-관리">6. API 키 관리</a><a class="d3" href="#발급">발급</a><a class="d3" href="#관리">관리</a><a class="d2" href="#7-도구-실행기">7. 도구 실행기</a><a class="d2" href="#8-승인-흐름">8. 승인 흐름</a><a class="d3" href="#받는-사람-지정">받는 사람 지정</a><a class="d3" href="#신뢰할-수-없는-콘텐츠-보호">신뢰할 수 없는 콘텐츠 보호</a><a class="d2" href="#9-사용-예시-프롬프트">9. 사용 예시 프롬프트</a><a class="d2" href="#10-도구-목록">10. 도구 목록</a><a class="d3" href="#조회검색-기본-역할-mcp-user">조회·검색 (기본 역할 mcp-user)</a><a class="d3" href="#작성-기본-역할-mcp-writer---기본-승인-필요">작성 (기본 역할 mcp-writer, ✅ = 기본 승인 필요)</a><a class="d3" href="#파일--기본-승인-필요">파일 (✅ 기본 승인 필요)</a><a class="d3" href="#채널-관리-역할-mcp-channel-admin--기본-승인-필요">채널 관리 (역할 mcp-channel-admin, ✅ 기본 승인 필요)</a><a class="d3" href="#위험-도구-역할-mcp-admin-기본-비활성화">위험 도구 (역할 mcp-admin, 기본 비활성화)</a><a class="d3" href="#호환-이름-기본-꺼짐">호환 이름 (기본 꺼짐)</a><a class="d3" href="#호출-한도">호출 한도</a><a class="d2" href="#11-내-활동세션연결된-앱">11. 내 활동·세션·연결된 앱</a><a class="d3" href="#내-활동">내 활동</a><a class="d3" href="#세션연결된-앱">세션·연결된 앱</a><a class="d2" href="#12-개인-암호화-키">12. 개인 암호화 키</a><a class="d2" href="#13-프로필테마">13. 프로필·테마</a><a class="d2" href="#14-faq--문제-해결">14. FAQ / 문제 해결</a><a class="d3" href="#자주-보는-오류-코드">자주 보는 오류 코드</a><a class="d3" href="#질문과-답">질문과 답</a></aside>
-    <article class="doc-body"><h1 id="mmcp-v100-사용자-가이드"><a class="anchor" href="#mmcp-v100-사용자-가이드" aria-hidden="true">#</a>mmcp v1.0.0 사용자 가이드</h1>
+    <article class="doc-body"><h1 id="mmcp-v101-사용자-가이드"><a class="anchor" href="#mmcp-v101-사용자-가이드" aria-hidden="true">#</a>mmcp v1.0.1 사용자 가이드</h1>
 <blockquote>
-<p>Mattermost MCP Gateway(mmcp) v1.0.0을 쓰는 <strong>일반 사용자</strong>를 위한 안내서입니다.
+<p>Mattermost MCP Gateway(mmcp) v1.0.1을 쓰는 <strong>일반 사용자</strong>를 위한 안내서입니다.
 서버 설치·운영과 관리 콘솔 설명은 다루지 않습니다.</p>
 </blockquote>
 <h2 id="목차"><a class="anchor" href="#목차" aria-hidden="true">#</a>목차</h2>
@@ -55,7 +55,7 @@
     M -.->|쓰기 작업은 미리보기 → 내 동의| U</pre>
 <hr>
 <h2 id="2-로그인"><a class="anchor" href="#2-로그인" aria-hidden="true">#</a>2. 로그인</h2>
-<p>브라우저에서 mmcp 주소로 접속합니다. 로그인 화면과 오른쪽 위 프로필 메뉴에서 현재 서비스 버전(<strong>mmcp v1.0.0</strong>)을 확인할 수 있습니다.</p>
+<p>브라우저에서 mmcp 주소로 접속합니다. 로그인 화면과 오른쪽 위 프로필 메뉴에서 현재 서비스 버전(<strong>mmcp v1.0.1</strong>)을 확인할 수 있습니다.</p>
 <p><img src="screenshots/login.webp" alt="로그인 화면" loading="lazy" decoding="async" class="doc-shot" /></p>
 <h3 id="keycloak-sso"><a class="anchor" href="#keycloak-sso" aria-hidden="true">#</a>Keycloak SSO</h3>
 <ul>
@@ -187,7 +187,7 @@
 <li>상단의 🔔 아이콘에는 승인 대기 건수가 표시되며, 누르면 <strong>승인 요청</strong> 화면으로 갑니다.</li>
 </ul>
 <h3 id="프로필-메뉴"><a class="anchor" href="#프로필-메뉴" aria-hidden="true">#</a>프로필 메뉴</h3>
-<p>오른쪽 위 아바타를 누르면 계정 정보(아이디, SSO/로컬 구분, 역할), 내 홈·내 API 키·프로필 바로가기, 테마(라이트/다크/시스템), 키보드 단축키, <strong>서비스 버전(mmcp v1.0.0)</strong>, 로그아웃이 있습니다.</p>
+<p>오른쪽 위 아바타를 누르면 계정 정보(아이디, SSO/로컬 구분, 역할), 내 홈·내 API 키·프로필 바로가기, 테마(라이트/다크/시스템), 키보드 단축키, <strong>서비스 버전(mmcp v1.0.1)</strong>, 로그아웃이 있습니다.</p>
 <p><img src="screenshots/profile-menu.webp" alt="프로필 메뉴" loading="lazy" decoding="async" class="doc-shot" /></p>
 <hr>
 <h2 id="4-mattermost-계정-연결"><a class="anchor" href="#4-mattermost-계정-연결" aria-hidden="true">#</a>4. Mattermost 계정 연결</h2>
@@ -459,7 +459,7 @@ codex</code></pre>
 </ul>
 <hr>
 <h2 id="10-도구-목록"><a class="anchor" href="#10-도구-목록" aria-hidden="true">#</a>10. 도구 목록</h2>
-<p>아래는 mmcp v1.0.0에 들어 있는 도구입니다. <strong>관리자가 일부 도구를 끄거나 승인 여부·필요 역할을 바꿀 수 있으므로</strong>, 실제로 쓸 수 있는 목록은 도구 실행기에서 확인하세요. 읽기 전용 API 키나 <code>mcp:read</code> 권한으로 연결하면 쓰기 도구는 보이지 않습니다.</p>
+<p>아래는 mmcp v1.0.1에 들어 있는 도구입니다. <strong>관리자가 일부 도구를 끄거나 승인 여부·필요 역할을 바꿀 수 있으므로</strong>, 실제로 쓸 수 있는 목록은 도구 실행기에서 확인하세요. 읽기 전용 API 키나 <code>mcp:read</code> 권한으로 연결하면 쓰기 도구는 보이지 않습니다.</p>
 <h3 id="조회검색-기본-역할-mcp-user"><a class="anchor" href="#조회검색-기본-역할-mcp-user" aria-hidden="true">#</a>조회·검색 (기본 역할 <code>mcp-user</code>)</h3>
 <table>
 <thead>
@@ -704,7 +704,7 @@ codex</code></pre>
 <li><strong>프로필</strong>: 표시 이름과 이메일 수정. Keycloak SSO 계정은 이메일·역할을 Keycloak에서 관리하므로 이메일을 바꿀 수 없습니다.</li>
 <li><strong>비밀번호 변경</strong>(로컬 비밀번호가 있는 계정만): 8자 이상, 영문 대/소문자·숫자·특수문자 중 3종류 이상. 변경하면 다른 브라우저 세션은 로그아웃됩니다.</li>
 <li><strong>화면</strong>: 테마 <em>라이트 / 다크 / 시스템</em>, <strong>촘촘한 화면(compact)</strong> 토글. 테마는 <code>Shift + T</code>, 상단 테마 버튼, 프로필 메뉴에서도 바꿀 수 있습니다.</li>
-<li><strong>계정 정보</strong>: 아이디, 역할, 가입일, 최근 로그인, 서비스 버전(mmcp v1.0.0).</li>
+<li><strong>계정 정보</strong>: 아이디, 역할, 가입일, 최근 로그인, 서비스 버전(mmcp v1.0.1).</li>
 </ul>
 <p>모바일에서도 같은 화면을 쓸 수 있습니다(왼쪽 위 메뉴 버튼으로 메뉴 열기).</p>
 <p><img src="screenshots/mobile-connect.webp" alt="모바일 연결 가이드" loading="lazy" decoding="async" class="doc-shot" /></p>
@@ -811,10 +811,10 @@ API 키는 <strong>회전 → 24시간 유예</strong>로 새 키를 받아 교�
 <p><strong>Q. 봇이 &quot;○○님의 요청&quot;으로 메시지를 보내요.</strong>
 관리자가 발신 계정을 봇(또는 자동)으로 설정했기 때문입니다. 자동 모드라면 내 Mattermost 토큰을 등록하면 내 명의로 보냅니다.</p>
 <p><strong>Q. 지금 쓰는 mmcp 버전은?</strong>
-로그인 화면 하단, 프로필 메뉴, 프로필·환경설정의 계정 정보에서 확인할 수 있습니다. 이 가이드는 <strong>mmcp v1.0.0</strong> 기준입니다.</p>
+로그인 화면 하단, 프로필 메뉴, 프로필·환경설정의 계정 정보에서 확인할 수 있습니다. 이 가이드는 <strong>mmcp v1.0.1</strong> 기준입니다.</p>
 </article>
   </div>
-  <footer class="footer"><div class="wrap"><span>mmcp v1.0.0 · MIT License</span><span><a href="./">홈</a> · <a href="https://github.com/hkjang/mmcp/releases">다운로드</a></span></div></footer>
+  <footer class="footer"><div class="wrap"><span>mmcp v1.0.1 · MIT License</span><span><a href="./">홈</a> · <a href="https://github.com/hkjang/mmcp/releases">다운로드</a></span></div></footer>
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'
     mermaid.initialize({ startOnLoad: true, theme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default' })

@@ -518,3 +518,46 @@ func TestIntegrationConsoleApprovalAndEmailTakeover(t *testing.T) {
 		t.Fatal("self-asserted email must not map to another user's Mattermost account")
 	}
 }
+
+func TestIntegrationBehindReverseProxy(t *testing.T) {
+	h := newHarness(t)
+	get := func(path string) (*http.Response, map[string]any) {
+		req, _ := http.NewRequest("GET", h.ts.URL+path, nil)
+		req.Header.Set("X-Forwarded-Proto", "https")
+		req.Header.Set("X-Forwarded-Host", "mcp.example.com")
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		out := map[string]any{}
+		_ = json.NewDecoder(resp.Body).Decode(&out)
+		return resp, out
+	}
+	resp, prm := get("/.well-known/oauth-protected-resource/mcp")
+	if prm["resource"] != "https://mcp.example.com/mcp" || resp.Header.Get("Access-Control-Allow-Origin") != "*" {
+		t.Fatalf("resource metadata must use the public origin and allow CORS: %v", prm)
+	}
+	_, asm := get("/.well-known/oauth-authorization-server")
+	if asm["issuer"] != "https://mcp.example.com" || asm["token_endpoint"] != "https://mcp.example.com/oauth/token" {
+		t.Fatalf("auth server metadata: %v", asm)
+	}
+	req, _ := http.NewRequest("POST", h.ts.URL+"/mcp", strings.NewReader(`{}`))
+	req.Header.Set("X-Forwarded-Proto", "https")
+	req.Header.Set("X-Forwarded-Host", "mcp.example.com")
+	r2, _ := http.DefaultClient.Do(req)
+	if !strings.Contains(r2.Header.Get("WWW-Authenticate"), `resource_metadata="https://mcp.example.com/.well-known/oauth-protected-resource/mcp"`) {
+		t.Fatalf("401 challenge must point at the public metadata URL: %q", r2.Header.Get("WWW-Authenticate"))
+	}
+	// configured Public URL wins over forwarded headers
+	admin := h.login("admin", "Admin!2345678")
+	h.call(admin, "PUT", "/api/admin/settings/general", map[string]any{"public_url": "https://chat.corp.example"}, 200)
+	if _, prm = get("/.well-known/oauth-protected-resource/mcp"); prm["resource"] != "https://chat.corp.example/mcp" {
+		t.Fatalf("public url must win: %v", prm)
+	}
+	// 2025-03-26 default endpoint alias
+	r3, _ := http.PostForm(h.ts.URL+"/token", url.Values{"grant_type": {"authorization_code"}, "client_id": {"nope"}})
+	if r3.StatusCode != 401 {
+		t.Fatalf("/token alias should reach the token endpoint, got %d", r3.StatusCode)
+	}
+}

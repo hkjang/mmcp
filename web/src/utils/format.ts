@@ -8,7 +8,7 @@ dayjs.locale('ko')
 export const fmtTime = (v?: string | null) => (v ? dayjs(v).format('YYYY-MM-DD HH:mm:ss') : '-')
 export const fmtDate = (v?: string | null) => (v ? dayjs(v).format('YYYY-MM-DD') : '-')
 export const fromNow = (v?: string | null) => (v ? dayjs(v).fromNow() : '-')
-export const appVersion = import.meta.env.VITE_APP_VERSION ?? '1.0.0'
+export const appVersion = import.meta.env.VITE_APP_VERSION ?? '1.0.1'
 
 const CHO = ['ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ']
 

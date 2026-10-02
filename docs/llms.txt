@@ -2,7 +2,7 @@
 
 > mmcp is an MCP (Model Context Protocol) server that lets AI agents (Claude Code, Codex, Cursor, in-house AI portals) use Mattermost with the permissions of the signed-in user. Users authenticate with Keycloak (OIDC, silent SSO); mmcp maps the Keycloak `sub` to a fixed Mattermost `user_id` and calls the Mattermost REST API v4 with that user's own credential. Writes need two-phase approval. It ships as one offline Docker image configured by four environment variables.
 
-Version described: 1.0.0 (image `mmcp:v1.0.0`, offline archive `mmcp-v1.0.0.tar.gz`).
+Version described: 1.0.1 (image `mmcp:v1.0.1`, offline archive `mmcp-v1.0.1.tar.gz`).
 
 ## Key facts
 - Environment variables (the only four): POSTGRES_DSN, BOOTSTRAP_ADMIN, BOOTSTRAP_ADMIN_PASSWORD, ENCRYPTION_KEY. Everything else is configured in the admin console and stored in PostgreSQL.

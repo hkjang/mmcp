@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/netip"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -123,23 +124,38 @@ func (s *Server) Handler() http.Handler {
 	r := chi.NewRouter()
 	r.Use(s.recoverer, s.requestID, s.securityHeaders, s.accessLog)
 
-	r.Get("/.well-known/oauth-protected-resource", s.handleProtectedResourceMetadata)
-	r.Get("/.well-known/oauth-protected-resource/*", s.handleProtectedResourceMetadata)
-	r.Get("/.well-known/oauth-authorization-server", s.handleAuthServerMetadata)
-	r.Get("/.well-known/oauth-authorization-server/*", s.handleAuthServerMetadata)
-	r.Get("/.well-known/openid-configuration", s.handleAuthServerMetadata)
-
-	r.Route("/oauth", func(r chi.Router) {
-		r.Use(s.cors)
-		r.Post("/register", s.handleOAuthRegister)
-		r.Get("/authorize", s.handleOAuthAuthorize)
-		r.Post("/token", s.handleOAuthToken)
-		r.Post("/revoke", s.handleOAuthRevoke)
-		r.Options("/*", func(w http.ResponseWriter, r *http.Request) {})
-		if s.ui != nil {
-			r.Get("/consent", s.ui.ServeHTTP) // SPA consent screen
+	// Public OAuth/MCP discovery and token endpoints: no cookies are involved,
+	// so any origin may call them (browser-based MCP clients need this).
+	r.Group(func(r chi.Router) {
+		r.Use(publicCORS)
+		for _, p := range []string{"/.well-known/oauth-protected-resource", "/.well-known/oauth-protected-resource/*"} {
+			r.Get(p, s.handleProtectedResourceMetadata)
+			r.Options(p, noContent)
+		}
+		for _, p := range []string{"/.well-known/oauth-authorization-server", "/.well-known/oauth-authorization-server/*", "/.well-known/openid-configuration", "/.well-known/openid-configuration/*"} {
+			r.Get(p, s.handleAuthServerMetadata)
+			r.Options(p, noContent)
+		}
+		for _, p := range []string{"/oauth/register", "/register"} {
+			r.Post(p, s.handleOAuthRegister)
+			r.Options(p, noContent)
+		}
+		for _, p := range []string{"/oauth/token", "/token"} {
+			r.Post(p, s.handleOAuthToken)
+			r.Options(p, noContent)
+		}
+		for _, p := range []string{"/oauth/revoke", "/revoke"} {
+			r.Post(p, s.handleOAuthRevoke)
+			r.Options(p, noContent)
 		}
 	})
+	// Default endpoint paths of the 2025-03-26 MCP spec for clients that
+	// skip metadata discovery.
+	r.Get("/authorize", s.handleOAuthAuthorize)
+	r.Get("/oauth/authorize", s.handleOAuthAuthorize)
+	if s.ui != nil {
+		r.Get("/oauth/consent", s.ui.ServeHTTP) // SPA consent screen
+	}
 
 	r.Route("/mcp", func(r chi.Router) {
 		r.Use(s.cors, s.mcpIPGuard)
@@ -337,6 +353,23 @@ func (s *Server) cors(next http.Handler) http.Handler {
 	})
 }
 
+func noContent(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) }
+
+func publicCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := w.Header()
+		h.Set("Access-Control-Allow-Origin", "*")
+		h.Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		h.Set("Access-Control-Allow-Headers", "Authorization, Content-Type, Mcp-Protocol-Version")
+		h.Set("Access-Control-Max-Age", "600")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func (s *Server) originAllowed(r *http.Request, origin string) bool {
 	if origin == s.publicBase(r) {
 		return true
@@ -422,24 +455,75 @@ func isHTTPS(r *http.Request) bool {
 	return r.TLS != nil || (trustProxy.Load() && strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https"))
 }
 
-// publicBase is the externally visible base URL. The configured Public URL
-// wins; otherwise it is derived from the request (fine for a first boot,
-// flagged on the dashboard).
+// publicBase is the externally visible base URL used for every URL mmcp
+// advertises (Keycloak redirect_uri, OAuth/MCP metadata, consent redirects).
+// The configured Public URL always wins. Without it, the address the user
+// actually typed is reconstructed from the reverse proxy's forwarding headers
+// — otherwise mmcp would hand Keycloak and MCP clients its internal
+// http://host:8080 address, which Keycloak rejects ("Invalid parameter:
+// redirect_uri") and MCP clients cannot match against the URL they used.
+// These headers only shape URLs that Keycloak and clients validate
+// themselves; client IP and cookie security still follow trust_proxy_headers.
 func (s *Server) publicBase(r *http.Request) string {
 	if u := s.settings.Get(r.Context()).General.PublicURL; u != "" {
 		return u
 	}
-	scheme := "http"
-	if isHTTPS(r) {
+	scheme, host := forwardedOrigin(r)
+	return scheme + "://" + host
+}
+
+func forwardedOrigin(r *http.Request) (scheme, host string) {
+	scheme, host = "http", r.Host
+	if r.TLS != nil {
 		scheme = "https"
 	}
-	host := r.Host
-	if s.settings.Get(r.Context()).General.TrustProxyHeaders {
-		if fh := r.Header.Get("X-Forwarded-Host"); fh != "" {
-			host = fh
+	// RFC 7239: Forwarded: for=1.2.3.4;proto=https;host=mcp.example.com
+	if fwd := r.Header.Get("Forwarded"); fwd != "" {
+		first := strings.Split(fwd, ",")[0]
+		for _, kv := range strings.Split(first, ";") {
+			k, v, ok := strings.Cut(strings.TrimSpace(kv), "=")
+			if !ok {
+				continue
+			}
+			v = strings.Trim(v, `"`)
+			switch strings.ToLower(k) {
+			case "proto":
+				if v == "http" || v == "https" {
+					scheme = v
+				}
+			case "host":
+				if validForwardedHost(v) {
+					host = v
+				}
+			}
 		}
 	}
-	return scheme + "://" + host
+	if p := strings.ToLower(strings.TrimSpace(strings.Split(r.Header.Get("X-Forwarded-Proto"), ",")[0])); p == "http" || p == "https" {
+		scheme = p
+	}
+	if h := strings.TrimSpace(strings.Split(r.Header.Get("X-Forwarded-Host"), ",")[0]); validForwardedHost(h) {
+		host = h
+	}
+	if p := strings.TrimSpace(strings.Split(r.Header.Get("X-Forwarded-Port"), ",")[0]); p != "" && !strings.Contains(host, ":") && r.Header.Get("X-Forwarded-Host") != "" {
+		if (scheme == "https" && p != "443") || (scheme == "http" && p != "80") {
+			if _, err := strconv.Atoi(p); err == nil {
+				host += ":" + p
+			}
+		}
+	}
+	return scheme, host
+}
+
+func validForwardedHost(h string) bool {
+	if h == "" || len(h) > 255 {
+		return false
+	}
+	for _, c := range h {
+		if !(c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || strings.ContainsRune(".-:[]_", c)) {
+			return false
+		}
+	}
+	return true
 }
 
 type apiError struct {
