@@ -14,7 +14,7 @@ lint:
 
 test:
 	go test ./...
-	cd web && node node_modules/vitest/vitest.mjs run
+	cd web && npm test --silent
 
 # Needs PostgreSQL: TEST_POSTGRES_DSN=postgres://... make test-integration
 test-integration:
